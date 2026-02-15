@@ -62,6 +62,16 @@ type Neuron struct {
 	// zero compute.
 	LastInteraction uint32
 
+	// DecayRate controls how quickly activation decays toward baseline.
+	// Expressed as a fixed-point fraction of 65536:
+	//   64000 = ~97.7% retention per tick (slow decay)
+	//   58982 = ~90% retention per tick
+	//   32768 = 50% retention per tick (fast decay)
+	// Initialized to a network-wide default but can be tuned per-neuron
+	// to model different neuron types (e.g., fast-spiking interneurons
+	// vs slow pyramidal cells).
+	DecayRate uint16
+
 	// RefractoryUntil is the counter value until which the neuron
 	// cannot fire. Prevents runaway cascading and models the
 	// biological refractory period.
@@ -93,7 +103,7 @@ func clampAdd(base, delta int16) int16 {
 //
 // The decay is lazy — it's only calculated when the neuron is next
 // stimulated, so idle neurons cost nothing.
-func (n *Neuron) decay(now uint32, decayRate uint16) {
+func (n *Neuron) decay(now uint32) {
 	elapsed := now - n.LastInteraction
 	if elapsed == 0 {
 		return
@@ -118,7 +128,7 @@ func (n *Neuron) decay(now uint32, decayRate uint16) {
 	}
 
 	for i := uint32(0); i < elapsed; i++ {
-		distance = (distance * int32(decayRate)) >> 16
+		distance = (distance * int32(n.DecayRate)) >> 16
 		if distance == 0 {
 			break
 		}
@@ -138,9 +148,9 @@ func (n *Neuron) decay(now uint32, decayRate uint16) {
 //     period has elapsed, fire.
 //
 // Returns true if the neuron fired, false otherwise.
-func (n *Neuron) Stimulate(weight int16, now uint32, decayRate uint16) bool {
+func (n *Neuron) Stimulate(weight int16, now uint32) bool {
 	// Step 1: Decay
-	n.decay(now, decayRate)
+	n.decay(now)
 
 	// Step 2: Summation (clamped)
 	n.Activation = clampAdd(n.Activation, weight)
