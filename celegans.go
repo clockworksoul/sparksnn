@@ -144,6 +144,12 @@ func DefaultCelegansParams() CelegansParams {
 // DD1-6, VD1-13 (dorsal/ventral D-type, cross-inhibitory)
 // RME neurons (head muscle inhibition)
 // AVL, DVB (enteric muscles)
+// IsGABANeuron returns true if the named neuron is a known GABAergic
+// (inhibitory) neuron in C. elegans.
+func IsGABANeuron(name string) bool {
+	return gabaMotorNeurons[name]
+}
+
 var gabaMotorNeurons = map[string]bool{
 	"DD1": true, "DD2": true, "DD3": true,
 	"DD4": true, "DD5": true, "DD6": true,
