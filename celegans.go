@@ -76,27 +76,101 @@ func ParseCelegansCSV(r io.Reader) ([]CelegansRecord, error) {
 	return records, nil
 }
 
+// CelegansParams holds tunable parameters for building a C. elegans
+// network. Separate from the constructor to keep the API clean as
+// we add more knobs.
+type CelegansParams struct {
+	// WeightScale multiplies synapse count to get connection weight.
+	// e.g., 100 means 3 synapses → weight 300.
+	WeightScale int
+
+	// InhibitoryScale is an additional multiplier applied to
+	// inhibitory (GABA) connection weights. In biology, inhibitory
+	// interneurons have outsized influence — a single GABAergic
+	// neuron can suppress many excitatory ones. Values > 1 amplify
+	// inhibition relative to excitation.
+	//
+	// Biology note: C. elegans has ~6% GABA connections but ~30%
+	// inhibitory influence. A scale of 3-5x compensates.
+	InhibitoryScale int
+
+	// GapJunctionScale scales gap junction weights relative to
+	// chemical synapses. Gap junctions are typically weaker per-
+	// synapse (electrical coupling vs vesicle release) but faster.
+	// Values < WeightScale attenuate them. 0 means use WeightScale.
+	GapJunctionScale int
+
+	Baseline         int16
+	Threshold        int16
+	DecayRate        uint16
+	RefractoryPeriod uint32
+
+	// PostFireReset is the activation level after firing. If 0,
+	// defaults to Baseline. Negative values model hyperpolarization
+	// (the neuron goes below resting potential after firing), which
+	// is biologically accurate and critical for preventing runaway
+	// excitation.
+	PostFireReset int16
+
+	// UsePostFireReset indicates whether PostFireReset should be
+	// used (since 0 is a valid reset value).
+	UsePostFireReset bool
+}
+
+// DefaultCelegansParams returns sensible defaults for C. elegans
+// network construction. These are tuned to produce biologically
+// plausible activation patterns — not seizure-like runaway excitation.
+func DefaultCelegansParams() CelegansParams {
+	return CelegansParams{
+		WeightScale:      100,
+		InhibitoryScale:  5,     // GABA neurons punch well above their weight
+		GapJunctionScale: 40,    // Gap junctions weaker per-synapse
+		Baseline:         0,
+		Threshold:        350,   // Low enough for 4-synapse connections to trigger
+		DecayRate:        40000,  // ~61% retention — strong decay fights runaway
+		RefractoryPeriod: 6,     // Longer refractory helps damp oscillation
+		PostFireReset:    -200,   // Strong hyperpolarization after firing
+		UsePostFireReset: true,
+	}
+}
+
+// isInhibitory returns true if the neurotransmitter is known to be
+// inhibitory in C. elegans. This includes GABA (classic inhibitory)
+// and some glutamate connections that act on GluCl channels — a
+// well-known nematode-specific quirk where glutamate can be
+// inhibitory via glutamate-gated chloride channels.
+//
+// Known inhibitory neuron classes in C. elegans (GABA motor neurons):
+// DD1-6, VD1-13 (dorsal/ventral D-type, cross-inhibitory)
+// RME neurons (head muscle inhibition)
+// AVL, DVB (enteric muscles)
+var gabaMotorNeurons = map[string]bool{
+	"DD1": true, "DD2": true, "DD3": true,
+	"DD4": true, "DD5": true, "DD6": true,
+	"VD1": true, "VD2": true, "VD3": true, "VD4": true,
+	"VD5": true, "VD6": true, "VD7": true, "VD8": true,
+	"VD9": true, "VD10": true, "VD11": true, "VD12": true,
+	"VD13": true,
+	"RMED": true, "RMEL": true, "RMER": true, "RMEV": true,
+	"AVL": true, "DVB": true,
+}
+
 // CelegansNetwork builds a biomimetic Network from C. elegans
 // connectome data. Returns the network and a map of neuron names
 // to their indices in the network.
 //
-// Parameters:
-//   - records: parsed connectome data from LoadCelegansCSV
-//   - weightScale: multiplier to convert synapse count to int16 weight
-//     (e.g., 100 means 3 synapses = weight 300)
-//   - baseline, threshold: neuron parameters
-//   - decayRate: default decay rate for all neurons
-//   - refractoryPeriod: ticks after firing before neuron can fire again
+// Gap junctions are modeled as bidirectional connections with
+// attenuated weight (GapJunctionScale). Chemical synapses ("Send")
+// are unidirectional.
 //
-// Gap junctions are modeled as bidirectional excitatory connections.
-// Chemical synapses ("Send") are unidirectional. GABA neurotransmitter
-// connections are inhibitory (negative weight); all others are excitatory.
+// Inhibitory classification uses both neurotransmitter type (GABA)
+// and known inhibitory neuron identity (D-type motor neurons, RME
+// neurons). This is more biologically accurate than neurotransmitter
+// alone, since C. elegans has inhibitory neurons that aren't always
+// annotated as GABA in the dataset.
 func CelegansNetwork(
 	records []CelegansRecord,
-	weightScale int,
-	baseline, threshold int16,
-	decayRate uint16,
-	refractoryPeriod uint32,
+	params CelegansParams,
 ) (*Network, map[string]uint32) {
 
 	// First pass: collect unique neuron names
@@ -112,26 +186,54 @@ func CelegansNetwork(
 	for name := range nameSet {
 		names = append(names, name)
 	}
-	// Sort for deterministic ordering
 	sortStrings(names)
 	for i, name := range names {
 		nameToIndex[name] = uint32(i)
 	}
 
 	// Create network
-	net := NewNetwork(uint32(len(names)), baseline, threshold, decayRate, refractoryPeriod)
+	net := NewNetwork(uint32(len(names)), params.Baseline, params.Threshold,
+		params.DecayRate, params.RefractoryPeriod)
+
+	// Set post-fire reset if configured
+	if params.UsePostFireReset {
+		for i := range net.Neurons {
+			// Store post-fire reset in baseline for now.
+			// TODO: Add dedicated PostFireReset field to Neuron.
+			_ = i // placeholder — we'll handle this in fire()
+		}
+		net.PostFireReset = params.PostFireReset
+		net.UsePostFireReset = true
+	}
+
+	gjScale := params.GapJunctionScale
+	if gjScale == 0 {
+		gjScale = params.WeightScale
+	}
+
+	inhibScale := params.InhibitoryScale
+	if inhibScale == 0 {
+		inhibScale = 1
+	}
 
 	// Second pass: add connections
 	for _, r := range records {
 		fromIdx := nameToIndex[r.Origin]
 		toIdx := nameToIndex[r.Target]
 
-		// Calculate weight: synapse count * scale factor
-		w := int32(r.NumConnections) * int32(weightScale)
+		// Choose base scale based on connection type
+		scale := int32(params.WeightScale)
+		if r.Type == "GapJunction" {
+			scale = int32(gjScale)
+		}
 
-		// GABA is inhibitory; everything else is excitatory
-		if r.Neurotransmitter == "GABA" {
-			w = -w
+		w := int32(r.NumConnections) * scale
+
+		// Determine if inhibitory: explicit GABA neurotransmitter
+		// OR the origin is a known GABAergic neuron
+		inhibitory := r.Neurotransmitter == "GABA" || gabaMotorNeurons[r.Origin]
+		if inhibitory {
+			w = -w * int32(inhibScale)
 		}
 
 		// Clamp to int16 range
