@@ -1,4 +1,9 @@
-package biomimetic
+// Package celegans provides tools for loading, building, and analyzing
+// a biomimetic neural network based on the C. elegans connectome — the
+// only organism whose complete nervous system has been fully mapped.
+//
+// Data source: OpenWorm project (CElegansNeuroML).
+package celegans
 
 import (
 	"encoding/csv"
@@ -8,32 +13,34 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	biomimetic "github.com/clockworksoul/biomimetic-network"
 )
 
-// CelegansRecord represents a single row from the C. elegans
-// connectome dataset (OpenWorm/CElegansNeuroML).
-type CelegansRecord struct {
-	Origin         string
-	Target         string
-	Type           string // "Send" (chemical synapse) or "GapJunction"
-	NumConnections int
+// Record represents a single row from the C. elegans connectome
+// dataset (OpenWorm/CElegansNeuroML).
+type Record struct {
+	Origin           string
+	Target           string
+	Type             string // "Send" (chemical synapse) or "GapJunction"
+	NumConnections   int
 	Neurotransmitter string
 }
 
-// LoadCelegansCSV reads the C. elegans connectome from a CSV file
-// and returns the parsed records.
-func LoadCelegansCSV(path string) ([]CelegansRecord, error) {
+// LoadCSV reads the C. elegans connectome from a CSV file and returns
+// the parsed records.
+func LoadCSV(path string) ([]Record, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("open %s: %w", path, err)
 	}
 	defer f.Close()
 
-	return ParseCelegansCSV(f)
+	return ParseCSV(f)
 }
 
-// ParseCelegansCSV reads C. elegans connectome records from a reader.
-func ParseCelegansCSV(r io.Reader) ([]CelegansRecord, error) {
+// ParseCSV reads C. elegans connectome records from a reader.
+func ParseCSV(r io.Reader) ([]Record, error) {
 	reader := csv.NewReader(r)
 
 	// Skip header
@@ -41,7 +48,7 @@ func ParseCelegansCSV(r io.Reader) ([]CelegansRecord, error) {
 		return nil, fmt.Errorf("read header: %w", err)
 	}
 
-	var records []CelegansRecord
+	var records []Record
 	for {
 		row, err := reader.Read()
 		if err == io.EOF {
@@ -64,7 +71,7 @@ func ParseCelegansCSV(r io.Reader) ([]CelegansRecord, error) {
 			nt = strings.TrimSpace(row[4])
 		}
 
-		records = append(records, CelegansRecord{
+		records = append(records, Record{
 			Origin:           strings.TrimSpace(row[0]),
 			Target:           strings.TrimSpace(row[1]),
 			Type:             strings.TrimSpace(row[2]),
@@ -76,10 +83,10 @@ func ParseCelegansCSV(r io.Reader) ([]CelegansRecord, error) {
 	return records, nil
 }
 
-// CelegansParams holds tunable parameters for building a C. elegans
-// network. Separate from the constructor to keep the API clean as
-// we add more knobs.
-type CelegansParams struct {
+// Params holds tunable parameters for building a C. elegans network.
+// Separate from the constructor to keep the API clean as we add more
+// knobs.
+type Params struct {
 	// WeightScale multiplies synapse count to get connection weight.
 	// e.g., 100 means 3 synapses → weight 300.
 	WeightScale int
@@ -117,35 +124,30 @@ type CelegansParams struct {
 	UsePostFireReset bool
 }
 
-// DefaultCelegansParams returns sensible defaults for C. elegans
-// network construction. These are tuned to produce biologically
-// plausible activation patterns — not seizure-like runaway excitation.
-func DefaultCelegansParams() CelegansParams {
-	return CelegansParams{
+// DefaultParams returns sensible defaults for C. elegans network
+// construction. These are tuned to produce biologically plausible
+// activation patterns — not seizure-like runaway excitation.
+func DefaultParams() Params {
+	return Params{
 		WeightScale:      100,
-		InhibitoryScale:  5,     // GABA neurons punch well above their weight
-		GapJunctionScale: 40,    // Gap junctions weaker per-synapse
+		InhibitoryScale:  5,      // GABA neurons punch well above their weight
+		GapJunctionScale: 40,     // Gap junctions weaker per-synapse
 		Baseline:         0,
-		Threshold:        350,   // Low enough for 4-synapse connections to trigger
-		DecayRate:        40000,  // ~61% retention — strong decay fights runaway
-		RefractoryPeriod: 6,     // Longer refractory helps damp oscillation
-		PostFireReset:    -200,   // Strong hyperpolarization after firing
+		Threshold:        500,
+		DecayRate:        45000,  // ~69% retention — aggressive decay fights runaway
+		RefractoryPeriod: 5,
+		PostFireReset:    -150,   // Hyperpolarization after firing
 		UsePostFireReset: true,
 	}
 }
 
-// isInhibitory returns true if the neurotransmitter is known to be
-// inhibitory in C. elegans. This includes GABA (classic inhibitory)
-// and some glutamate connections that act on GluCl channels — a
-// well-known nematode-specific quirk where glutamate can be
-// inhibitory via glutamate-gated chloride channels.
-//
-// Known inhibitory neuron classes in C. elegans (GABA motor neurons):
-// DD1-6, VD1-13 (dorsal/ventral D-type, cross-inhibitory)
-// RME neurons (head muscle inhibition)
-// AVL, DVB (enteric muscles)
 // IsGABANeuron returns true if the named neuron is a known GABAergic
 // (inhibitory) neuron in C. elegans.
+//
+// Known inhibitory neuron classes:
+//   - DD1-6, VD1-13 (dorsal/ventral D-type, cross-inhibitory)
+//   - RME neurons (head muscle inhibition)
+//   - AVL, DVB (enteric muscles)
 func IsGABANeuron(name string) bool {
 	return gabaMotorNeurons[name]
 }
@@ -161,7 +163,7 @@ var gabaMotorNeurons = map[string]bool{
 	"AVL": true, "DVB": true,
 }
 
-// CelegansNetwork builds a biomimetic Network from C. elegans
+// BuildNetwork constructs a biomimetic Network from C. elegans
 // connectome data. Returns the network and a map of neuron names
 // to their indices in the network.
 //
@@ -174,10 +176,10 @@ var gabaMotorNeurons = map[string]bool{
 // neurons). This is more biologically accurate than neurotransmitter
 // alone, since C. elegans has inhibitory neurons that aren't always
 // annotated as GABA in the dataset.
-func CelegansNetwork(
-	records []CelegansRecord,
-	params CelegansParams,
-) (*Network, map[string]uint32) {
+func BuildNetwork(
+	records []Record,
+	params Params,
+) (*biomimetic.Network, map[string]uint32) {
 
 	// First pass: collect unique neuron names
 	nameSet := make(map[string]bool)
@@ -198,16 +200,11 @@ func CelegansNetwork(
 	}
 
 	// Create network
-	net := NewNetwork(uint32(len(names)), params.Baseline, params.Threshold,
+	net := biomimetic.NewNetwork(uint32(len(names)), params.Baseline, params.Threshold,
 		params.DecayRate, params.RefractoryPeriod)
 
 	// Set post-fire reset if configured
 	if params.UsePostFireReset {
-		for i := range net.Neurons {
-			// Store post-fire reset in baseline for now.
-			// TODO: Add dedicated PostFireReset field to Neuron.
-			_ = i // placeholder — we'll handle this in fire()
-		}
 		net.PostFireReset = params.PostFireReset
 		net.UsePostFireReset = true
 	}
@@ -262,7 +259,6 @@ func CelegansNetwork(
 }
 
 // sortStrings is a simple insertion sort for small slices.
-// Avoids importing "sort" for this one use.
 func sortStrings(s []string) {
 	for i := 1; i < len(s); i++ {
 		for j := i; j > 0 && s[j] < s[j-1]; j-- {
