@@ -17,7 +17,7 @@ import (
 	"os"
 	"strings"
 
-	biomimetic "github.com/clockworksoul/biomimetic-network"
+	"github.com/clockworksoul/biomimetic-network/celegans"
 )
 
 // SimData is the complete simulation output embedded in the HTML.
@@ -89,7 +89,7 @@ func classifyNeuron(name string) string {
 	}
 
 	// GABA interneurons
-	if biomimetic.IsGABANeuron(name) {
+	if celegans.IsGABANeuron(name) {
 		return "gaba"
 	}
 	if command[name] {
@@ -179,13 +179,13 @@ func main() {
 	flag.Parse()
 
 	// Load connectome
-	records, err := biomimetic.LoadCelegansCSV("data/celegans_connectome.csv")
+	records, err := celegans.LoadCSV("data/celegans_connectome.csv")
 	if err != nil {
-		log.Fatalf("LoadCelegansCSV: %v", err)
+		log.Fatalf("LoadCSV: %v", err)
 	}
 
-	params := biomimetic.DefaultCelegansParams()
-	net, nameMap := biomimetic.CelegansNetwork(records, params)
+	params := celegans.DefaultParams()
+	net, nameMap := celegans.BuildNetwork(records, params)
 
 	// Build reverse map
 	indexToName := make(map[uint32]string, len(nameMap))
