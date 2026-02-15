@@ -12,7 +12,11 @@
   - Post-fire reset below baseline (hyperpolarization)
 - [ ] **Add neuromuscular connections:** We loaded `Connectome` sheet but not `NeuronsToMuscle` (565 connections). Motor neurons → muscle cells would let us observe simulated movement output.
 - [ ] **Add sensory neuron metadata:** The `Sensory` sheet has neuron types and neurotransmitter info. Use it to set per-neuron properties.
-- [ ] **Validate against known circuits:** The tap withdrawal reflex (touch → backward movement) is well-characterized. Can we stimulate PLM neurons and see the correct motor neurons activate?
+- [x] **Validate tap withdrawal:** ✅ Anterior touch (ALM/AVM) → backward motors dominate 1.87:1. Correct!
+- [ ] **Fix escape forward response:** Posterior touch (PLM) produces backward-biased output (F/B=0.56) instead of forward. Root cause: PLM connects directly to AVA/AVD (backward command neurons). The real worm uses **reciprocal inhibition** between AVA↔AVB circuits to achieve directional selectivity. Need to implement:
+  - AVA↔AVB mutual suppression (winner-take-all dynamics)
+  - Possibly tonic PVC→AVB excitatory bias
+  - State-dependent gating / neuromodulation
 - [ ] **Compare gap junctions vs chemical synapses:** Are gap junctions behaving differently enough? They should be faster/more reliable. Consider whether they need different weight scaling.
 - [ ] **Inhibitory balance:** Count GABA vs excitatory connections. The 277/299 activation suggests insufficient inhibition — biological networks maintain ~20-30% inhibitory neurons.
 
