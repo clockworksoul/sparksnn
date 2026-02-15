@@ -72,7 +72,8 @@ func TestNetworkInhibitionBlocksPropagation(t *testing.T) {
 
 	// B receives -200 then +300 in same tick. The -200 is applied first,
 	// then when +300 arrives, decay has already been calculated for that
-	// tick, giving us -180 + 300 = 120. Still below threshold of 400.
+	// tick, giving us -180 + 300 = 120 (not 200, because decay is applied).
+	// Still below threshold of 400.
 	if net.Neurons[1].Activation != 120 {
 		t.Errorf("neuron B activation: got %d, want 120", net.Neurons[1].Activation)
 	}
