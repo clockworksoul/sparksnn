@@ -12,12 +12,9 @@ type Network struct {
 	// and refractory period tracking.
 	Counter uint32
 
-	// DecayRate controls how quickly activation decays toward baseline.
-	// Expressed as a fixed-point fraction of 65536:
-	//   64000 = ~97.7% retention per tick (slow decay)
-	//   58982 = ~90% retention per tick
-	//   32768 = 50% retention per tick (fast decay)
-	DecayRate uint16
+	// DefaultDecayRate is the decay rate assigned to new neurons.
+	// Stored for reference; individual neurons may diverge.
+	DefaultDecayRate uint16
 
 	// RefractoryPeriod is the number of counter ticks after firing
 	// during which a neuron cannot fire again.
@@ -39,12 +36,13 @@ func NewNetwork(size uint32, baseline, threshold int16, decayRate uint16, refrac
 			Activation: baseline,
 			Baseline:   baseline,
 			Threshold:  threshold,
+			DecayRate:  decayRate,
 		}
 	}
 
 	return &Network{
 		Neurons:          neurons,
-		DecayRate:        decayRate,
+		DefaultDecayRate: decayRate,
 		RefractoryPeriod: refractoryPeriod,
 	}
 }
@@ -76,7 +74,7 @@ func (net *Network) stimulate(index uint32, weight int16, depth uint32) {
 	}
 
 	neuron := &net.Neurons[index]
-	fired := neuron.Stimulate(weight, net.Counter, net.DecayRate)
+	fired := neuron.Stimulate(weight, net.Counter)
 
 	if fired {
 		// Set refractory period
