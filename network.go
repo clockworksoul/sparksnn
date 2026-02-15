@@ -33,6 +33,15 @@ type Network struct {
 	// during which a neuron cannot fire again.
 	RefractoryPeriod uint32
 
+	// PostFireReset is the activation level a neuron is set to after
+	// firing. Models hyperpolarization when negative. Only used when
+	// UsePostFireReset is true; otherwise neurons reset to Baseline.
+	PostFireReset int16
+
+	// UsePostFireReset enables the PostFireReset value instead of
+	// resetting to Baseline after firing.
+	UsePostFireReset bool
+
 	// pending holds stimulations to process during the current Tick().
 	pending []PendingStimulation
 
@@ -92,7 +101,11 @@ func (net *Network) Stimulate(index uint32, weight int16) {
 // stimulations for the next tick.
 func (net *Network) fire(neuron *Neuron) {
 	neuron.RefractoryUntil = net.Counter + net.RefractoryPeriod
-	neuron.Activation = neuron.Baseline
+	if net.UsePostFireReset {
+		neuron.Activation = net.PostFireReset
+	} else {
+		neuron.Activation = neuron.Baseline
+	}
 
 	for _, conn := range neuron.Connections {
 		net.nextPending = append(net.nextPending, PendingStimulation{

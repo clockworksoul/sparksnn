@@ -84,7 +84,7 @@ func TestEscapeForward(t *testing.T) {
 	}
 
 	// Build network with tuned parameters
-	net, nameMap := CelegansNetwork(records, 200, 0, 300, 58982, 3)
+	net, nameMap := CelegansNetwork(records, DefaultCelegansParams())
 
 	// Reverse lookup
 	indexToName := make(map[uint32]string, len(nameMap))
@@ -178,7 +178,7 @@ func TestTapWithdrawal(t *testing.T) {
 		t.Fatalf("LoadCelegansCSV: %v", err)
 	}
 
-	net, nameMap := CelegansNetwork(records, 200, 0, 300, 58982, 3)
+	net, nameMap := CelegansNetwork(records, DefaultCelegansParams())
 
 	// --- Anterior touch: stimulate ALM and AVM neurons ---
 	t.Log("=== ANTERIOR TOUCH (expect BACKWARD withdrawal) ===")
@@ -245,7 +245,7 @@ func TestDirectionalContrast(t *testing.T) {
 	ticks := 8
 
 	// --- Run 1: Posterior touch ---
-	net1, nameMap := CelegansNetwork(records, 200, 0, 300, 58982, 3)
+	net1, nameMap := CelegansNetwork(records, DefaultCelegansParams())
 	net1.Stimulate(nameMap["PLML"], 5000)
 	net1.Stimulate(nameMap["PLMR"], 5000)
 	net1.TickN(uint32(ticks))
@@ -254,7 +254,7 @@ func TestDirectionalContrast(t *testing.T) {
 	bwd1 := motorActivity(net1, nameMap, backwardPrefixes)
 
 	// --- Run 2: Anterior touch ---
-	net2, _ := CelegansNetwork(records, 200, 0, 300, 58982, 3)
+	net2, _ := CelegansNetwork(records, DefaultCelegansParams())
 	net2.Stimulate(nameMap["ALML"], 5000)
 	net2.Stimulate(nameMap["ALMR"], 5000)
 	net2.Stimulate(nameMap["AVM"], 5000)
@@ -320,7 +320,7 @@ func TestCircuitTrace(t *testing.T) {
 		t.Fatalf("LoadCelegansCSV: %v", err)
 	}
 
-	net, nameMap := CelegansNetwork(records, 200, 0, 300, 58982, 3)
+	net, nameMap := CelegansNetwork(records, DefaultCelegansParams())
 
 	// Trace these specific neurons through the escape circuit
 	traceNames := []string{
