@@ -86,14 +86,16 @@ type Neuron struct {
 // clamping the result to [MinActivation, MaxActivation] instead of
 // wrapping on overflow.
 func clampAdd(base, delta int16) int16 {
-	sum := int32(base) + int32(delta)
-	if sum > int32(MaxActivation) {
+	sum := base + delta
+
+	if sum > MaxActivation {
 		return MaxActivation
 	}
-	if sum < int32(MinActivation) {
+	if sum < MinActivation {
 		return MinActivation
 	}
-	return int16(sum)
+
+	return sum
 }
 
 // decay calculates how far activation has moved back toward baseline
