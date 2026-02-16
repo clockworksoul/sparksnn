@@ -166,21 +166,21 @@ func TestEscapeForward(t *testing.T) {
 
 		for _, name := range bClassMotors {
 			if idx, ok := nameMap[name]; ok {
-				if net.Neurons[idx].RefractoryUntil == net.Counter+net.RefractoryPeriod {
+				if net.Neurons[idx].HasFired && net.Neurons[idx].LastFired == net.Counter {
 					bFired[name]++
 				}
 			}
 		}
 		for _, name := range aClassMotors {
 			if idx, ok := nameMap[name]; ok {
-				if net.Neurons[idx].RefractoryUntil == net.Counter+net.RefractoryPeriod {
+				if net.Neurons[idx].HasFired && net.Neurons[idx].LastFired == net.Counter {
 					aFired[name]++
 				}
 			}
 		}
 		for _, name := range circuitNeurons {
 			idx := nameMap[name]
-			if net.Neurons[idx].RefractoryUntil == net.Counter+net.RefractoryPeriod {
+			if net.Neurons[idx].HasFired && net.Neurons[idx].LastFired == net.Counter {
 				circuitEvents = append(circuitEvents, fireEvent{tick + 1, name})
 			}
 		}
@@ -253,14 +253,14 @@ func TestBackwardEscape(t *testing.T) {
 
 		for _, name := range bClassMotors {
 			if idx, ok := nameMap[name]; ok {
-				if net.Neurons[idx].RefractoryUntil == net.Counter+net.RefractoryPeriod {
+				if net.Neurons[idx].HasFired && net.Neurons[idx].LastFired == net.Counter {
 					bTotal++
 				}
 			}
 		}
 		for _, name := range aClassMotors {
 			if idx, ok := nameMap[name]; ok {
-				if net.Neurons[idx].RefractoryUntil == net.Counter+net.RefractoryPeriod {
+				if net.Neurons[idx].HasFired && net.Neurons[idx].LastFired == net.Counter {
 					aTotal++
 				}
 			}

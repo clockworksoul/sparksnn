@@ -79,15 +79,16 @@ type Neuron struct {
 	// vs slow pyramidal cells).
 	DecayRate uint16
 
-	// RefractoryUntil is the counter value until which the neuron
-	// cannot fire. Prevents runaway cascading and models the
-	// biological refractory period.
-	RefractoryUntil uint32
-
 	// LastFired is the counter value when this neuron last fired.
-	// Used by learning rules (e.g., STDP) to calculate spike timing
-	// between pre- and post-synaptic neurons. Zero if never fired.
+	// Used for refractory period checks and by learning rules (e.g.,
+	// STDP) for spike timing. Zero means "never fired" — the
+	// refractory check treats this specially to allow first firing.
 	LastFired uint32
+
+	// HasFired tracks whether this neuron has ever fired. Needed
+	// to distinguish "fired at tick 0" from "never fired" (both
+	// would have LastFired=0).
+	HasFired bool
 
 	// Connections are the outgoing synaptic connections to other
 	// neurons. Each connection has a target index and a signed weight.
@@ -159,8 +160,11 @@ func (n *Neuron) decay(now uint32) {
 //  3. Threshold check — if activation >= threshold and refractory
 //     period has elapsed, fire.
 //
+// The refractory period is derived from LastFired: the neuron cannot
+// fire again until now >= LastFired + refractoryPeriod.
+//
 // Returns true if the neuron fired, false otherwise.
-func (n *Neuron) Stimulate(weight int16, now uint32) bool {
+func (n *Neuron) Stimulate(weight int16, now, refractoryPeriod uint32) bool {
 	// Step 1: Decay
 	n.decay(now)
 
@@ -168,7 +172,10 @@ func (n *Neuron) Stimulate(weight int16, now uint32) bool {
 	n.Activation = clampAdd(n.Activation, weight)
 
 	// Step 3: Threshold check + refractory period
-	if n.Activation >= n.Threshold && now >= n.RefractoryUntil {
+	// A neuron that has never fired is always eligible (no refractory).
+	// Otherwise, it must wait until LastFired + refractoryPeriod.
+	refractory := n.HasFired && now < n.LastFired+refractoryPeriod
+	if n.Activation >= n.Threshold && !refractory {
 		return true
 	}
 

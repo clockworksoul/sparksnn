@@ -224,9 +224,9 @@ func TestLearningRuleSwappable(t *testing.T) {
 
 	// Reset neurons for clean test
 	net.Neurons[0].Activation = net.Neurons[0].Baseline
-	net.Neurons[0].RefractoryUntil = 0
+	net.Neurons[0].HasFired = false
 	net.Neurons[1].Activation = net.Neurons[1].Baseline
-	net.Neurons[1].RefractoryUntil = 0
+	net.Neurons[1].HasFired = false
 
 	net.Stimulate(0, 500)
 	net.Tick()
