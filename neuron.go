@@ -91,10 +91,10 @@ type Neuron struct {
 	Connections []Connection
 }
 
-// clampAdd adds a (possibly negative) int16 value to a base int16,
+// ClampAdd adds a (possibly negative) int16 value to a base int16,
 // clamping the result to [MinActivation, MaxActivation] instead of
-// wrapping on overflow.
-func clampAdd(base, delta int16) int16 {
+// wrapping on overflow. Exported for use by learning rule subpackages.
+func ClampAdd(base, delta int16) int16 {
 	sum := int32(base) + int32(delta)
 	if sum > int32(MaxActivation) {
 		return MaxActivation
@@ -166,7 +166,7 @@ func (n *Neuron) Stimulate(weight int16, now, refractoryPeriod uint32) bool {
 	n.decay(now)
 
 	// Step 2: Summation (clamped)
-	n.Activation = clampAdd(n.Activation, weight)
+	n.Activation = ClampAdd(n.Activation, weight)
 
 	// Step 3: Threshold check + refractory period
 	// LastFired == 0 means "never fired" (always eligible).
