@@ -228,16 +228,29 @@ Backprop solves credit assignment by propagating error gradients backward throug
 
 This is less precise than backprop — it won't find the mathematically optimal gradient. But it's also more robust, more biologically plausible, and naturally supports continual learning without catastrophic forgetting.
 
-#### 🔬 Predictive Learning Rule (HIGH PRIORITY INVESTIGATION)
-A 2023 Nature Communications paper ("Sequence anticipation and spike-timing-dependent plasticity emerge from a predictive learning rule") suggests that STDP may not be the fundamental mechanism at all — it may *emerge* from a simpler rule: **neurons that learn to predict their own future inputs naturally develop STDP-like behavior.**
+#### 🔬 Predictive Learning Rule — IMPLEMENTED ✅
+Based on Saponati & Vinck 2023 (Nature Communications): "Sequence anticipation and spike-timing-dependent plasticity emerge from a predictive learning rule."
 
-If true, this is potentially transformative for our architecture. A predictive learning rule would:
-- Be simpler to implement than explicit STDP
-- Naturally produce sequence learning and anticipation
-- Potentially be more powerful (STDP is a side-effect, not the goal)
-- Give us a genuine differentiator from other neuromorphic approaches
+**The key insight:** STDP is not the learning rule — it's a *side effect*. When neurons optimize a simpler objective (predict their own future inputs), STDP timing curves emerge automatically. The predictive rule is more fundamental than STDP.
 
-**TODO:** Read the full paper, understand the mathematical formulation, and evaluate whether this could replace R-STDP as our primary learning rule. This could be our secret sauce.
+**Implementation:** `PredictiveRule` in `predictive.go`. Implements the `LearningRule` interface and can be swapped with R-STDP at runtime.
+
+**Advantages over R-STDP:**
+- **Fully self-supervised** — no external reward signal needed
+- **STDP emerges automatically** — not manually programmed
+- **Self-stabilizing** — heterosynaptic competition prevents runaway weights
+- **Sequence learning** — neurons naturally learn to anticipate temporal patterns
+- **Principled foundation** — derived from an optimization objective, not heuristics
+
+**How it works:**
+1. Each neuron predicts its next input: `prediction = activation × weight`
+2. Prediction error drives learning: `error = actual_input - prediction`
+3. Weights update to reduce prediction error, using both a per-synapse correlation term and a global heterosynaptic term
+4. Eligibility traces provide temporal context (input history)
+
+**Status:** Implemented in integer arithmetic (int16), 13 tests passing. Currently a second option alongside R-STDP. Needs benchmarking against R-STDP on real tasks before becoming the default.
+
+See `research/predictive-learning-rule.md` for the full analysis.
 
 ### 2. Information Output ⭐ Hard but tractable
 Input is straightforward — anything can be linearized into stimulation patterns. Output is harder.
