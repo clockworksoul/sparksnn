@@ -81,14 +81,10 @@ type Neuron struct {
 
 	// LastFired is the counter value when this neuron last fired.
 	// Used for refractory period checks and by learning rules (e.g.,
-	// STDP) for spike timing. Zero means "never fired" — the
-	// refractory check treats this specially to allow first firing.
+	// STDP) for spike timing. Zero means "never fired" — since
+	// Tick() increments Counter before processing, fired neurons
+	// always have LastFired >= 1.
 	LastFired uint32
-
-	// HasFired tracks whether this neuron has ever fired. Needed
-	// to distinguish "fired at tick 0" from "never fired" (both
-	// would have LastFired=0).
-	HasFired bool
 
 	// Connections are the outgoing synaptic connections to other
 	// neurons. Each connection has a target index and a signed weight.
@@ -124,6 +120,7 @@ func (n *Neuron) decay(now uint32) {
 
 	distance := int32(n.Activation) - int32(n.Baseline)
 	if distance == 0 {
+		n.LastInteraction = now
 		return
 	}
 
@@ -172,9 +169,9 @@ func (n *Neuron) Stimulate(weight int16, now, refractoryPeriod uint32) bool {
 	n.Activation = clampAdd(n.Activation, weight)
 
 	// Step 3: Threshold check + refractory period
-	// A neuron that has never fired is always eligible (no refractory).
-	// Otherwise, it must wait until LastFired + refractoryPeriod.
-	refractory := n.HasFired && now < n.LastFired+refractoryPeriod
+	// LastFired == 0 means "never fired" (always eligible).
+	// Otherwise, must wait until LastFired + refractoryPeriod.
+	refractory := n.LastFired > 0 && now < n.LastFired+refractoryPeriod
 	if n.Activation >= n.Threshold && !refractory {
 		return true
 	}

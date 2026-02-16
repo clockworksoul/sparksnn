@@ -252,7 +252,7 @@ func main() {
 	}
 	// Find neurons that fired from direct stimulus
 	for i, n := range net.Neurons {
-		if n.HasFired {
+		if n.LastFired > 0 {
 			snap0.Fired = append(snap0.Fired, i)
 			snap0.TotalFired++
 		}
@@ -270,7 +270,7 @@ func main() {
 		}
 		for i, n := range net.Neurons {
 			snap.Activations[i] = n.Activation
-			if n.HasFired && n.LastFired == net.Counter {
+			if n.LastFired == net.Counter {
 				snap.Fired = append(snap.Fired, i)
 			}
 		}

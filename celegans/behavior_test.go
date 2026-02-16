@@ -255,7 +255,7 @@ func TestCircuitTrace(t *testing.T) {
 		for _, idx := range traceIndices {
 			n := &net.Neurons[idx]
 			marker := " "
-			if n.HasFired && net.Counter < n.LastFired+net.RefractoryPeriod {
+			if n.LastFired > 0 && net.Counter < n.LastFired+net.RefractoryPeriod {
 				marker = "*"
 			}
 			row += fmt.Sprintf(" %4d%s", n.Activation, marker)

@@ -63,9 +63,6 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 		if got.LastFired != want.LastFired {
 			t.Errorf("Neuron[%d].LastFired: got %d, want %d", i, got.LastFired, want.LastFired)
 		}
-		if got.HasFired != want.HasFired {
-			t.Errorf("Neuron[%d].HasFired: got %v, want %v", i, got.HasFired, want.HasFired)
-		}
 		if len(got.Connections) != len(want.Connections) {
 			t.Errorf("Neuron[%d].Connections: got %d, want %d", i, len(got.Connections), len(want.Connections))
 			continue

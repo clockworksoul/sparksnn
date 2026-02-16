@@ -224,9 +224,9 @@ func TestLearningRuleSwappable(t *testing.T) {
 
 	// Reset neurons for clean test
 	net.Neurons[0].Activation = net.Neurons[0].Baseline
-	net.Neurons[0].HasFired = false
+	net.Neurons[0].LastFired = 0
 	net.Neurons[1].Activation = net.Neurons[1].Baseline
-	net.Neurons[1].HasFired = false
+	net.Neurons[1].LastFired = 0
 
 	net.Stimulate(0, 500)
 	net.Tick()
@@ -275,13 +275,13 @@ func TestLastFiredTracking(t *testing.T) {
 		t.Errorf("initial LastFired should be 0, got %d", net.Neurons[0].LastFired)
 	}
 
-	net.Stimulate(0, 500) // A fires at tick 0
-	if net.Neurons[0].LastFired != 0 {
-		t.Errorf("A LastFired should be 0 (current counter), got %d", net.Neurons[0].LastFired)
+	net.Stimulate(0, 500) // A fires at counter=1
+	if net.Neurons[0].LastFired != 1 {
+		t.Errorf("A LastFired should be 1 (current counter), got %d", net.Neurons[0].LastFired)
 	}
 
-	net.Tick() // tick 1: B fires
-	if net.Neurons[1].LastFired != 1 {
-		t.Errorf("B LastFired should be 1, got %d", net.Neurons[1].LastFired)
+	net.Tick() // counter=2: B fires
+	if net.Neurons[1].LastFired != 2 {
+		t.Errorf("B LastFired should be 2, got %d", net.Neurons[1].LastFired)
 	}
 }
