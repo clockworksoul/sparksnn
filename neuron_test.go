@@ -37,8 +37,7 @@ func TestNeuronDecay(t *testing.T) {
 		Baseline:        0,
 		Threshold:       500,
 		DecayRate:       32768, // 50% retention per tick
-		LastInteraction:  0,
-		RefractoryUntil: 0,
+		LastInteraction: 0,
 	}
 
 	// 50% retention per tick, 1 tick elapsed
@@ -62,8 +61,7 @@ func TestNeuronDecayLargeElapsed(t *testing.T) {
 		Baseline:        0,
 		Threshold:       500,
 		DecayRate:       32768,
-		LastInteraction:  0,
-		RefractoryUntil: 0,
+		LastInteraction: 0,
 	}
 
 	// Large elapsed should decay fully to baseline
@@ -79,12 +77,11 @@ func TestNeuronStimulateNoFire(t *testing.T) {
 		Baseline:        0,
 		Threshold:       1000,
 		DecayRate:       32768,
-		LastInteraction:  0,
-		RefractoryUntil: 0,
+		LastInteraction: 0,
 	}
 
 	// Weight of 500 shouldn't reach threshold of 1000
-	fired := n.Stimulate(500, 0)
+	fired := n.Stimulate(500, 0, 2)
 	if fired {
 		t.Error("neuron should not have fired")
 	}
@@ -99,12 +96,11 @@ func TestNeuronStimulateFires(t *testing.T) {
 		Baseline:        0,
 		Threshold:       1000,
 		DecayRate:       32768,
-		LastInteraction:  0,
-		RefractoryUntil: 0,
+		LastInteraction: 0,
 	}
 
 	// 900 + 200 = 1100 > 1000 threshold
-	fired := n.Stimulate(200, 0)
+	fired := n.Stimulate(200, 0, 2)
 	if !fired {
 		t.Error("neuron should have fired")
 	}
@@ -116,20 +112,38 @@ func TestNeuronRefractoryPeriod(t *testing.T) {
 		Baseline:        0,
 		Threshold:       1000,
 		DecayRate:       32768,
-		LastInteraction:  5,
-		RefractoryUntil: 10, // Can't fire until counter >= 10
+		LastInteraction: 5,
+		LastFired:       5,
+		HasFired:        true,
 	}
 
-	// Above threshold but in refractory period
-	fired := n.Stimulate(100, 5)
+	// Above threshold but in refractory period (fired at 5, refractory=5, so blocked until 10)
+	fired := n.Stimulate(100, 7, 5)
 	if fired {
 		t.Error("neuron should not fire during refractory period")
 	}
 
 	// Now past refractory period — stimulate heavily to ensure above threshold after decay
-	fired = n.Stimulate(5000, 10)
+	fired = n.Stimulate(5000, 10, 5)
 	if !fired {
 		t.Error("neuron should fire after refractory period")
+	}
+}
+
+func TestNeuronRefractoryFirstFire(t *testing.T) {
+	// A neuron that has never fired should not be blocked by refractory
+	n := Neuron{
+		Activation:      0,
+		Baseline:        0,
+		Threshold:       100,
+		DecayRate:       58982,
+		LastInteraction: 0,
+	}
+
+	// Even at tick 0 with refractory=5, a never-fired neuron should fire
+	fired := n.Stimulate(500, 0, 5)
+	if !fired {
+		t.Error("never-fired neuron should not be blocked by refractory period")
 	}
 }
 
@@ -139,12 +153,11 @@ func TestNeuronInhibition(t *testing.T) {
 		Baseline:        0,
 		Threshold:       1000,
 		DecayRate:       32768,
-		LastInteraction:  0,
-		RefractoryUntil: 0,
+		LastInteraction: 0,
 	}
 
 	// Inhibitory signal
-	fired := n.Stimulate(-300, 0)
+	fired := n.Stimulate(-300, 0, 2)
 	if fired {
 		t.Error("neuron should not fire with inhibitory signal")
 	}

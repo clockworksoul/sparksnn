@@ -124,7 +124,7 @@ func (net *Network) getIncomingConnections(neuronIdx uint32) []IncomingConnectio
 	for i, in := range incoming {
 		sourceNeuron := &net.Neurons[in.SourceIndex]
 		var encoded uint32
-		if sourceNeuron.LastFired > 0 || sourceNeuron.RefractoryUntil > 0 {
+		if sourceNeuron.HasFired {
 			// Neuron has fired at some point. Encode as LastFired + 1.
 			encoded = sourceNeuron.LastFired + 1
 		}
@@ -156,7 +156,7 @@ func (net *Network) Stimulate(index uint32, weight int16) {
 	}
 
 	neuron := &net.Neurons[index]
-	fired := neuron.Stimulate(weight, net.Counter)
+	fired := neuron.Stimulate(weight, net.Counter, net.RefractoryPeriod)
 
 	if fired {
 		net.fireIdx(index)
@@ -169,8 +169,8 @@ func (net *Network) Stimulate(index uint32, weight int16) {
 // next tick.
 func (net *Network) fireIdx(idx uint32) {
 	neuron := &net.Neurons[idx]
-	neuron.RefractoryUntil = net.Counter + net.RefractoryPeriod
 	neuron.LastFired = net.Counter
+	neuron.HasFired = true
 
 	if net.UsePostFireReset {
 		neuron.Activation = net.PostFireReset
@@ -219,7 +219,7 @@ func (net *Network) Tick() int {
 		}
 
 		neuron := &net.Neurons[stim.Target]
-		if neuron.Stimulate(stim.Weight, net.Counter) {
+		if neuron.Stimulate(stim.Weight, net.Counter, net.RefractoryPeriod) {
 			net.fireIdx(stim.Target)
 			fired++
 		}

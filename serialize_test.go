@@ -60,8 +60,11 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 		if got.DecayRate != want.DecayRate {
 			t.Errorf("Neuron[%d].DecayRate: got %d, want %d", i, got.DecayRate, want.DecayRate)
 		}
-		if got.RefractoryUntil != want.RefractoryUntil {
-			t.Errorf("Neuron[%d].RefractoryUntil: got %d, want %d", i, got.RefractoryUntil, want.RefractoryUntil)
+		if got.LastFired != want.LastFired {
+			t.Errorf("Neuron[%d].LastFired: got %d, want %d", i, got.LastFired, want.LastFired)
+		}
+		if got.HasFired != want.HasFired {
+			t.Errorf("Neuron[%d].HasFired: got %v, want %v", i, got.HasFired, want.HasFired)
 		}
 		if len(got.Connections) != len(want.Connections) {
 			t.Errorf("Neuron[%d].Connections: got %d, want %d", i, len(got.Connections), len(want.Connections))
