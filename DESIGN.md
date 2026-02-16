@@ -214,7 +214,10 @@ Positive reward + positive eligibility = strengthen. Positive reward + negative 
 - **Hardware-proven:** Loihi 2 implements three-factor learning rules (STDP + reward modulation) natively
 - **Solves credit assignment:** The reward signal provides direction; STDP provides local structure
 
-**Implementation note:** The learning rule should be implemented behind an interface so we can swap in alternatives. R-STDP is our starting point, not necessarily our destination. See the **🔬 Predictive Learning Rule** TODO below.
+**Implementation note:** The learning rule is implemented behind the `LearningRule` interface, allowing algorithms to be swapped at runtime. Three implementations exist:
+- **`learning/stdp`** — Pure STDP (unsupervised Hebbian). Weight changes applied directly from spike timing. No reward signal needed.
+- **`learning/rstdp`** — Reward-modulated STDP (three-factor). Spike timing creates eligibility traces; reward consolidates them into weight changes.
+- **`learning/predictive`** — Predictive learning (Saponati & Vinck 2023). Self-supervised; STDP-like behavior emerges from prediction error minimization.
 
 #### Other Biological Mechanisms (for future consideration)
 - **Hebbian plasticity** ("fire together, wire together") — basic association, subsumed by STDP
@@ -233,7 +236,7 @@ Based on Saponati & Vinck 2023 (Nature Communications): "Sequence anticipation a
 
 **The key insight:** STDP is not the learning rule — it's a *side effect*. When neurons optimize a simpler objective (predict their own future inputs), STDP timing curves emerge automatically. The predictive rule is more fundamental than STDP.
 
-**Implementation:** `PredictiveRule` in `predictive.go`. Implements the `LearningRule` interface and can be swapped with R-STDP at runtime.
+**Implementation:** `PredictiveRule` in `learning/predictive/`. Implements the `LearningRule` interface and can be swapped with STDP or R-STDP at runtime.
 
 **Advantages over R-STDP:**
 - **Fully self-supervised** — no external reward signal needed
@@ -248,7 +251,7 @@ Based on Saponati & Vinck 2023 (Nature Communications): "Sequence anticipation a
 3. Weights update to reduce prediction error, using both a per-synapse correlation term and a global heterosynaptic term
 4. Eligibility traces provide temporal context (input history)
 
-**Status:** Implemented in integer arithmetic (int16), 13 tests passing. Currently a second option alongside R-STDP. Needs benchmarking against R-STDP on real tasks before becoming the default.
+**Status:** IMPLEMENTED ✅ — `learning/predictive/` package. Integer arithmetic (int16), 13 tests passing. Currently alongside pure STDP and R-STDP. Needs head-to-head benchmarking before choosing a default.
 
 See `research/predictive-learning-rule.md` for the full analysis.
 
