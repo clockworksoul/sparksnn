@@ -42,6 +42,15 @@ type Network struct {
 	// resetting to Baseline after firing.
 	UsePostFireReset bool
 
+	// LearningRule is the active plasticity mechanism. If nil,
+	// no learning occurs (equivalent to NoOpLearning).
+	LearningRule LearningRule
+
+	// incomingIndex maps each neuron index to its incoming connections.
+	// Built lazily by buildIncomingIndex(). Used by learning rules
+	// that need to evaluate post-synaptic timing across all inputs.
+	incomingIndex [][]IncomingConnection
+
 	// pending holds stimulations to process during the current Tick().
 	pending []PendingStimulation
 
@@ -78,6 +87,64 @@ func (net *Network) Connect(from, to uint32, weight int16) {
 		Target: to,
 		Weight: weight,
 	})
+	// Invalidate incoming index so it's rebuilt on next use
+	net.incomingIndex = nil
+}
+
+// buildIncomingIndex creates a reverse mapping from each neuron to
+// its incoming connections. Called lazily when learning rules need it.
+func (net *Network) buildIncomingIndex() {
+	net.incomingIndex = make([][]IncomingConnection, len(net.Neurons))
+	for i := range net.Neurons {
+		for j := range net.Neurons[i].Connections {
+			conn := &net.Neurons[i].Connections[j]
+			target := conn.Target
+			if target < uint32(len(net.Neurons)) {
+				net.incomingIndex[target] = append(net.incomingIndex[target], IncomingConnection{
+					SourceIndex: uint32(i),
+					Conn:        conn,
+				})
+			}
+		}
+	}
+}
+
+// getIncomingConnections returns all incoming connections to a neuron,
+// with SourceIndex set to the source neuron's LastFired tick + 1 (for
+// STDP timing evaluation). The +1 offset allows distinguishing
+// "fired at tick 0" from "never fired" (both would be 0 otherwise).
+// The learning rule must subtract 1 to get the actual tick.
+func (net *Network) getIncomingConnections(neuronIdx uint32) []IncomingConnection {
+	if net.incomingIndex == nil {
+		net.buildIncomingIndex()
+	}
+	incoming := net.incomingIndex[neuronIdx]
+
+	result := make([]IncomingConnection, len(incoming))
+	for i, in := range incoming {
+		sourceNeuron := &net.Neurons[in.SourceIndex]
+		var encoded uint32
+		if sourceNeuron.LastFired > 0 || sourceNeuron.RefractoryUntil > 0 {
+			// Neuron has fired at some point. Encode as LastFired + 1.
+			encoded = sourceNeuron.LastFired + 1
+		}
+		// else: encoded stays 0 = never fired
+
+		result[i] = IncomingConnection{
+			SourceIndex: encoded,
+			Conn:        in.Conn,
+		}
+	}
+	return result
+}
+
+// Reward delivers a global reward or punishment signal to the network.
+// The learning rule uses this to consolidate eligibility traces into
+// actual weight changes. Positive = reward, negative = punishment.
+func (net *Network) Reward(signal int16) {
+	if net.LearningRule != nil {
+		net.LearningRule.OnReward(net, signal, net.Counter)
+	}
 }
 
 // Stimulate sends an external signal to a specific neuron. If the
@@ -92,22 +159,40 @@ func (net *Network) Stimulate(index uint32, weight int16) {
 	fired := neuron.Stimulate(weight, net.Counter)
 
 	if fired {
-		net.fire(neuron)
+		net.fireIdx(index)
 	}
 }
 
-// fire handles a neuron that has exceeded its threshold: sets the
-// refractory period, resets activation, and queues downstream
-// stimulations for the next tick.
-func (net *Network) fire(neuron *Neuron) {
+// fireIdx handles a neuron that has exceeded its threshold: sets the
+// refractory period, resets activation, records the fire time, calls
+// learning rule hooks, and queues downstream stimulations for the
+// next tick.
+func (net *Network) fireIdx(idx uint32) {
+	neuron := &net.Neurons[idx]
 	neuron.RefractoryUntil = net.Counter + net.RefractoryPeriod
+	neuron.LastFired = net.Counter
+
 	if net.UsePostFireReset {
 		neuron.Activation = net.PostFireReset
 	} else {
 		neuron.Activation = neuron.Baseline
 	}
 
-	for _, conn := range neuron.Connections {
+	// Learning: notify post-synaptic firing for incoming connections
+	if net.LearningRule != nil {
+		incoming := net.getIncomingConnections(idx)
+		net.LearningRule.OnPostFire(incoming, net.Counter)
+	}
+
+	for i := range neuron.Connections {
+		conn := &neuron.Connections[i]
+
+		// Learning: notify pre-synaptic spike propagation
+		if net.LearningRule != nil && conn.Target < uint32(len(net.Neurons)) {
+			postNeuron := &net.Neurons[conn.Target]
+			net.LearningRule.OnSpikePropagation(conn, net.Counter, postNeuron.LastFired)
+		}
+
 		net.nextPending = append(net.nextPending, PendingStimulation{
 			Target: conn.Target,
 			Weight: conn.Weight,
@@ -135,9 +220,14 @@ func (net *Network) Tick() int {
 
 		neuron := &net.Neurons[stim.Target]
 		if neuron.Stimulate(stim.Weight, net.Counter) {
-			net.fire(neuron)
+			net.fireIdx(stim.Target)
 			fired++
 		}
+	}
+
+	// Learning: maintain eligibility traces (decay, cleanup)
+	if net.LearningRule != nil {
+		net.LearningRule.Maintain(net, net.Counter)
 	}
 
 	return fired

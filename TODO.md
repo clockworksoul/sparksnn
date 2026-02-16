@@ -14,10 +14,13 @@
 
 ## 🧠 Architecture & Core
 
-- [ ] **Learning rule (THE hard problem):** Start with STDP (spike-timing-dependent plasticity):
-  - Track pre/post-synaptic fire times per connection
-  - Weight update based on temporal correlation
-  - Then reward-modulated STDP for supervised direction
+- [ ] **Learning rule (THE hard problem):** Primary candidate is **R-STDP** (reward-modulated STDP):
+  - Implement behind a `LearningRule` interface so algorithms are swappable
+  - Add `eligibility` field (int16) to Connection, `lastFired` tick to Neuron
+  - Add hook points to tick loop: OnPreFire, OnPostFire, OnReward, Maintain
+  - Phase 1: Pure STDP (eligibility traces from spike timing)
+  - Phase 2: Add reward modulation (global signal consolidates traces into weight changes)
+  - Phase 3: Evaluate predictive learning rule as potential replacement (see Research)
 - [ ] **Relative refractory period:** Currently absolute only. A relative window (can fire with stronger input) would add biological realism and richer temporal dynamics.
 - [ ] **Connection delay:** Axon propagation delay proportional to length. A `delay` field on Connection could produce more realistic temporal patterns.
 - [ ] **Spontaneous firing:** Pacemaker neurons fire without input. Mechanism for spontaneous baseline activity.
@@ -46,10 +49,23 @@
 
 ## 📚 Research & Reading
 
+- [ ] 🔴 **Predictive learning rule (Nature Comms 2023)** — "Sequence anticipation and spike-timing-dependent plasticity emerge from a predictive learning rule." If STDP *emerges* from a simpler predictive rule, we may want to implement that instead of explicit STDP. Read full paper, understand the math, evaluate as potential primary learning rule. **Could be our secret sauce.** Paper: https://www.nature.com/articles/s41467-023-40651-w
+- [x] **Neuromorphic hardware landscape** — Loihi 2, TrueNorth, HTM. ✅ (2026-02-16) See `research/neuromorphic-landscape.md`
 - [ ] **STDP implementations** in SNN frameworks (Brian2, NEST, Norse)
 - [ ] **Leaky Integrate-and-Fire tuning** — decades of computational neuroscience parameter work
 - [ ] **Numenta/HTM papers** — similar problems, different solutions
-- [ ] **Intel Loihi papers** — neuromorphic hardware for this exact computation model
+- [x] **Intel Loihi papers** — neuromorphic hardware for this exact computation model ✅ (2026-02-16) Covered in landscape doc
+
+## 📏 Benchmarking Strategy
+
+We need to prove this isn't a toy. Benchmarks should compare against established ML approaches on equivalent tasks.
+
+- [ ] **Define benchmark suite** — what tasks, what metrics, what baselines?
+- [ ] **Continual learning / catastrophic forgetting** — potentially our strongest differentiator. Train on task A, then task B, measure retention of A. Traditional NNs struggle here; STDP-based networks handle it naturally.
+- [ ] **Energy/compute efficiency** — ops-per-inference comparison: our active-neuron count vs. traditional full-matrix forward pass. Measure with Go benchmarks.
+- [ ] **Temporal / streaming data** — anomaly detection, sequence prediction. Our architecture has native temporal dynamics; traditional NNs need explicit sequence handling (LSTM, transformer).
+- [ ] **Scaling curves** — how does inference cost grow with network size vs. input complexity? Should be O(k) where k=active neurons, not O(n).
+- [ ] **Simple classification baseline** — MNIST or equivalent. Not where we'll shine, but establishes a floor. If we can't classify handwritten digits, we have bigger problems.
 
 ## ❓ Open Questions
 
