@@ -11,112 +11,49 @@ func TestRuleSatisfiesInterface(t *testing.T) {
 	var _ bio.LearningRule = NewRule(DefaultConfig())
 }
 
-func TestCausalEligibility(t *testing.T) {
+func TestCausalTimingStrengthensWeight(t *testing.T) {
 	net := bio.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
+	originalWeight := net.Neurons[0].Connections[0].Weight
+
+	// Pre fires, then post fires — causal → potentiation
 	net.Stimulate(0, 500)
 	net.Tick()
 
-	elig := net.Neurons[0].Connections[0].Eligibility
-	if elig <= 0 {
-		t.Errorf("causal STDP should produce positive eligibility, got %d", elig)
+	newWeight := net.Neurons[0].Connections[0].Weight
+	if newWeight <= originalWeight {
+		t.Errorf("causal STDP should increase weight: was %d, now %d",
+			originalWeight, newWeight)
 	}
 }
 
-func TestAntiCausalEligibility(t *testing.T) {
+func TestAntiCausalTimingWeakensWeight(t *testing.T) {
 	net := bio.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
+	originalWeight := net.Neurons[0].Connections[0].Weight
+
+	// Post fires first
 	net.Tick()
 	net.Stimulate(1, 500)
 	net.Tick()
 	net.Tick()
 
+	// Then pre fires — anti-causal → depression
 	net.Stimulate(0, 500)
-
-	elig := net.Neurons[0].Connections[0].Eligibility
-	if elig >= 0 {
-		t.Errorf("anti-causal STDP should produce negative eligibility, got %d", elig)
-	}
-}
-
-func TestRewardConsolidatesWeights(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
-	net.LearningRule = NewRule(DefaultConfig())
-	net.Connect(0, 1, 500)
-
-	originalWeight := net.Neurons[0].Connections[0].Weight
-
-	net.Stimulate(0, 500)
-	net.Tick()
-
-	elig := net.Neurons[0].Connections[0].Eligibility
-	if elig <= 0 {
-		t.Fatalf("expected positive eligibility before reward, got %d", elig)
-	}
-
-	net.Reward(100)
-
-	newWeight := net.Neurons[0].Connections[0].Weight
-	if newWeight <= originalWeight {
-		t.Errorf("positive reward + positive eligibility should increase weight: was %d, now %d",
-			originalWeight, newWeight)
-	}
-
-	if net.Neurons[0].Connections[0].Eligibility != 0 {
-		t.Errorf("eligibility should be 0 after reward, got %d",
-			net.Neurons[0].Connections[0].Eligibility)
-	}
-}
-
-func TestPunishmentWeakensWeight(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
-	net.LearningRule = NewRule(DefaultConfig())
-	net.Connect(0, 1, 500)
-
-	originalWeight := net.Neurons[0].Connections[0].Weight
-
-	net.Stimulate(0, 500)
-	net.Tick()
-	net.Reward(-100)
 
 	newWeight := net.Neurons[0].Connections[0].Weight
 	if newWeight >= originalWeight {
-		t.Errorf("negative reward + positive eligibility should decrease weight: was %d, now %d",
+		t.Errorf("anti-causal STDP should decrease weight: was %d, now %d",
 			originalWeight, newWeight)
 	}
 }
 
-func TestEligibilityDecays(t *testing.T) {
-	cfg := DefaultConfig()
-	cfg.EligibilityDecayRate = 32768 // 50% per tick
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
-	net.LearningRule = NewRule(cfg)
-	net.Connect(0, 1, 500)
-
-	net.Stimulate(0, 500)
-	net.Tick()
-
-	eligAfterFire := net.Neurons[0].Connections[0].Eligibility
-	if eligAfterFire <= 0 {
-		t.Fatalf("expected positive eligibility, got %d", eligAfterFire)
-	}
-
-	net.Tick()
-	net.Tick()
-	net.Tick()
-
-	eligAfterDecay := net.Neurons[0].Connections[0].Eligibility
-	if eligAfterDecay >= eligAfterFire {
-		t.Errorf("eligibility should decay over time: was %d, now %d",
-			eligAfterFire, eligAfterDecay)
-	}
-}
-
-func TestNoRewardNoWeightChange(t *testing.T) {
+func TestNoRewardNeeded(t *testing.T) {
+	// Pure STDP changes weights without any reward signal
 	net := bio.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
@@ -125,11 +62,49 @@ func TestNoRewardNoWeightChange(t *testing.T) {
 
 	net.Stimulate(0, 500)
 	net.Tick()
-	net.TickN(20)
 
-	if net.Neurons[0].Connections[0].Weight != originalWeight {
-		t.Errorf("weight changed without reward: was %d, now %d",
-			originalWeight, net.Neurons[0].Connections[0].Weight)
+	newWeight := net.Neurons[0].Connections[0].Weight
+	if newWeight == originalWeight {
+		t.Errorf("pure STDP should change weights without reward, stayed at %d", originalWeight)
+	}
+}
+
+func TestRewardIsNoOp(t *testing.T) {
+	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net.LearningRule = NewRule(DefaultConfig())
+	net.Connect(0, 1, 500)
+
+	net.Stimulate(0, 500)
+	net.Tick()
+
+	weightBefore := net.Neurons[0].Connections[0].Weight
+	net.Reward(100)
+	weightAfter := net.Neurons[0].Connections[0].Weight
+
+	if weightBefore != weightAfter {
+		t.Errorf("Reward should be no-op for pure STDP: was %d, now %d",
+			weightBefore, weightAfter)
+	}
+}
+
+func TestMaintainIsNoOp(t *testing.T) {
+	// Pure STDP has no eligibility decay — verify Maintain does nothing
+	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net.LearningRule = NewRule(DefaultConfig())
+	net.Connect(0, 1, 500)
+
+	net.Stimulate(0, 500)
+	net.Tick()
+
+	weightAfterFire := net.Neurons[0].Connections[0].Weight
+
+	// Many ticks with no activity — weight shouldn't drift
+	net.TickN(50)
+
+	weightAfterMaintain := net.Neurons[0].Connections[0].Weight
+	if weightAfterFire != weightAfterMaintain {
+		t.Errorf("weight should not change during Maintain: was %d, now %d",
+			weightAfterFire, weightAfterMaintain)
 	}
 }
 
@@ -141,17 +116,64 @@ func TestWindowExpiry(t *testing.T) {
 	net.LearningRule = NewRule(cfg)
 	net.Connect(0, 1, 100)
 
+	originalWeight := net.Neurons[0].Connections[0].Weight
+
+	// Neuron 0 fires at tick 1
 	net.Neurons[0].LastFired = 1
 
+	// Wait way past the timing window
 	for i := 0; i < 30; i++ {
 		net.Tick()
 	}
 
+	// Neuron 1 fires — but too late for causal pairing
 	net.Stimulate(1, 500)
 
-	elig := net.Neurons[0].Connections[0].Eligibility
-	if elig != 0 {
-		t.Errorf("eligibility should be 0 for expired timing window, got %d", elig)
+	if net.Neurons[0].Connections[0].Weight != originalWeight {
+		t.Errorf("weight should not change for expired timing window: was %d, now %d",
+			originalWeight, net.Neurons[0].Connections[0].Weight)
+	}
+}
+
+func TestMaxWeightMagnitude(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.APlus = 500
+	cfg.MaxWeightMagnitude = 600
+
+	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net.LearningRule = NewRule(cfg)
+	net.Connect(0, 1, 550)
+
+	// Repeated causal firing should hit the cap
+	for i := 0; i < 20; i++ {
+		net.Stimulate(0, 500)
+		net.Tick()
+		net.TickN(3)
+	}
+
+	w := net.Neurons[0].Connections[0].Weight
+	if w > 600 {
+		t.Errorf("weight %d exceeds MaxWeightMagnitude 600", w)
+	}
+}
+
+func TestRepeatedCausalPotentiation(t *testing.T) {
+	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net.LearningRule = NewRule(DefaultConfig())
+	net.Connect(0, 1, 200)
+
+	initial := net.Neurons[0].Connections[0].Weight
+
+	for i := 0; i < 20; i++ {
+		net.Stimulate(0, 500)
+		net.Tick()
+		net.TickN(3)
+	}
+
+	final := net.Neurons[0].Connections[0].Weight
+	if final <= initial {
+		t.Errorf("repeated causal timing should strengthen weight: was %d, now %d",
+			initial, final)
 	}
 }
 

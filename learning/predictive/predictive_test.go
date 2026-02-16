@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	bio "github.com/clockworksoul/biomimetic-network"
-	"github.com/clockworksoul/biomimetic-network/learning/stdp"
+	"github.com/clockworksoul/biomimetic-network/learning/rstdp"
 )
 
 func TestRuleSatisfiesInterface(t *testing.T) {
@@ -132,14 +132,14 @@ func TestSwappableWithSTDP(t *testing.T) {
 	net := bio.NewNetwork(2, 0, 100, 58982, 2)
 	net.Connect(0, 1, 500)
 
-	// Start with STDP
-	net.LearningRule = stdp.NewRule(stdp.DefaultConfig())
+	// Start with R-STDP
+	net.LearningRule = rstdp.NewRule(rstdp.DefaultConfig())
 	net.Stimulate(0, 500)
 	net.Tick()
 
 	eligSTDP := net.Neurons[0].Connections[0].Eligibility
 	if eligSTDP == 0 {
-		t.Error("STDP should set eligibility")
+		t.Error("R-STDP should set eligibility")
 	}
 
 	// Reset
@@ -155,7 +155,7 @@ func TestSwappableWithSTDP(t *testing.T) {
 	net.Tick()
 
 	eligPred := net.Neurons[0].Connections[0].Eligibility
-	t.Logf("STDP eligibility: %d, Predictive eligibility: %d", eligSTDP, eligPred)
+	t.Logf("R-STDP eligibility: %d, Predictive eligibility: %d", eligSTDP, eligPred)
 }
 
 func TestRewardIsNoOp(t *testing.T) {

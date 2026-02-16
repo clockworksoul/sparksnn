@@ -1,17 +1,16 @@
-// Package stdp implements reward-modulated spike-timing-dependent
-// plasticity (R-STDP) as a learning rule for biomimetic networks.
+// Package stdp implements pure spike-timing-dependent plasticity
+// as a learning rule for biomimetic networks.
 //
-// R-STDP operates in three phases:
+// Pure STDP is unsupervised Hebbian learning based on spike timing:
 //
-//  1. Spike timing creates eligibility traces on connections
-//     (OnSpikePropagation / OnPostFire).
-//  2. Eligibility traces decay each tick (Maintain).
-//  3. A reward signal consolidates traces into weight changes
-//     (OnReward).
+//   - Pre fires before post (causal) → potentiation (strengthen).
+//   - Post fires before pre (anti-causal) → depression (weaken).
 //
-// Without reward signals, weights never change — STDP only marks
-// candidates. This is the "three-factor" learning rule: pre-timing ×
-// post-timing × reward.
+// Weight changes are applied immediately based on timing — no reward
+// signal is needed. The Eligibility field is used as a temporary
+// accumulator within a tick; it is zeroed after being applied.
+//
+// For reward-modulated STDP (three-factor), see learning/rstdp.
 package stdp
 
 import (
@@ -20,13 +19,13 @@ import (
 	bio "github.com/clockworksoul/biomimetic-network"
 )
 
-// Config holds tunable parameters for the STDP learning rule.
+// Config holds tunable parameters for the pure STDP learning rule.
 type Config struct {
-	// APlus is the maximum eligibility increase for causal timing
+	// APlus is the maximum weight increase for causal timing
 	// (pre fires before post). Expressed as int16.
 	APlus int16
 
-	// AMinus is the maximum eligibility decrease for anti-causal
+	// AMinus is the maximum weight decrease for anti-causal
 	// timing (post fires before pre). Expressed as int16.
 	AMinus int16
 
@@ -38,34 +37,28 @@ type Config struct {
 	// exponential decay window.
 	TauMinus uint32
 
-	// EligibilityDecayRate controls how quickly eligibility traces
-	// fade per tick. Same fixed-point fraction as neuron DecayRate:
-	// 58982 = ~90% retention per tick, 32768 = 50%.
-	EligibilityDecayRate uint16
-
 	// MaxWeightMagnitude caps the absolute value of weights after
 	// learning. Prevents runaway weight growth. 0 = use MaxWeight.
 	MaxWeightMagnitude int16
 }
 
-// DefaultConfig returns reasonable default STDP parameters.
+// DefaultConfig returns reasonable default pure STDP parameters.
 func DefaultConfig() Config {
 	return Config{
-		APlus:                100,
-		AMinus:               100,
-		TauPlus:              5,
-		TauMinus:             5,
-		EligibilityDecayRate: 52429, // ~80% retention per tick
-		MaxWeightMagnitude:   0,     // no cap (use MaxWeight)
+		APlus:              100,
+		AMinus:             100,
+		TauPlus:            5,
+		TauMinus:           5,
+		MaxWeightMagnitude: 0, // no cap (use MaxWeight)
 	}
 }
 
-// Rule implements reward-modulated spike-timing-dependent plasticity.
+// Rule implements pure spike-timing-dependent plasticity.
 type Rule struct {
 	Config Config
 }
 
-// NewRule creates an STDP learning rule with the given config.
+// NewRule creates a pure STDP learning rule with the given config.
 func NewRule(config Config) *Rule {
 	return &Rule{Config: config}
 }
@@ -92,9 +85,23 @@ func Window(dt uint32, amplitude int16, tau uint32) int16 {
 	return int16(result)
 }
 
+// clampWeight enforces MaxWeightMagnitude on a connection.
+func (s *Rule) clampWeight(conn *bio.Connection) {
+	maxMag := s.Config.MaxWeightMagnitude
+	if maxMag > 0 && maxMag < bio.MaxWeight {
+		if conn.Weight > maxMag {
+			conn.Weight = maxMag
+		}
+		if conn.Weight < -maxMag {
+			conn.Weight = -maxMag
+		}
+	}
+}
+
 // OnSpikePropagation evaluates pre-before-post timing. If the
 // post-synaptic neuron has fired recently (within the STDP window),
-// this is anti-causal: post fired before pre → depression.
+// this is anti-causal: post fired before pre → weaken the weight
+// directly.
 func (s *Rule) OnSpikePropagation(conn *bio.Connection, preFiredAt, postLastFired uint32) {
 	if postLastFired == 0 || postLastFired >= preFiredAt {
 		return
@@ -103,14 +110,15 @@ func (s *Rule) OnSpikePropagation(conn *bio.Connection, preFiredAt, postLastFire
 	dt := preFiredAt - postLastFired
 	delta := Window(dt, s.Config.AMinus, s.Config.TauMinus)
 	if delta != 0 {
-		conn.Eligibility = bio.ClampAdd(conn.Eligibility, -delta)
+		conn.Weight = bio.ClampAdd(conn.Weight, -delta)
+		s.clampWeight(conn)
 	}
 }
 
 // OnPostFire evaluates post-before-pre timing for all incoming
 // connections. For each incoming connection whose source has fired
 // recently (within the STDP window), this is causal: pre fired
-// before post → strengthen.
+// before post → strengthen the weight directly.
 func (s *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32) {
 	for _, in := range incoming {
 		if in.Conn == nil {
@@ -130,70 +138,16 @@ func (s *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 		dt := postFiredAt - preFiredAt
 		delta := Window(dt, s.Config.APlus, s.Config.TauPlus)
 		if delta != 0 {
-			in.Conn.Eligibility = bio.ClampAdd(in.Conn.Eligibility, delta)
+			in.Conn.Weight = bio.ClampAdd(in.Conn.Weight, delta)
+			s.clampWeight(in.Conn)
 		}
 	}
 }
 
-// OnReward consolidates eligibility traces into actual weight
-// changes. Positive reward + positive eligibility = strengthen.
-func (s *Rule) OnReward(net *bio.Network, reward int16, tick uint32) {
-	if reward == 0 {
-		return
-	}
+// OnReward is a no-op for pure STDP. Weight changes happen
+// directly from spike timing — no reward signal is needed.
+func (s *Rule) OnReward(net *bio.Network, reward int16, tick uint32) {}
 
-	maxMag := s.Config.MaxWeightMagnitude
-	if maxMag == 0 {
-		maxMag = bio.MaxWeight
-	}
-
-	for i := range net.Neurons {
-		for j := range net.Neurons[i].Connections {
-			conn := &net.Neurons[i].Connections[j]
-			if conn.Eligibility == 0 {
-				continue
-			}
-
-			delta := (int32(reward) * int32(conn.Eligibility)) >> 8
-			if delta > int32(bio.MaxWeight) {
-				delta = int32(bio.MaxWeight)
-			}
-			if delta < int32(bio.MinWeight) {
-				delta = int32(bio.MinWeight)
-			}
-
-			conn.Weight = bio.ClampAdd(conn.Weight, int16(delta))
-
-			if maxMag > 0 && maxMag < bio.MaxWeight {
-				if conn.Weight > maxMag {
-					conn.Weight = maxMag
-				}
-				if conn.Weight < -maxMag {
-					conn.Weight = -maxMag
-				}
-			}
-
-			conn.Eligibility = 0
-		}
-	}
-}
-
-// Maintain decays all eligibility traces across the network.
-func (s *Rule) Maintain(net *bio.Network, tick uint32) {
-	rate := s.Config.EligibilityDecayRate
-	if rate == 0 {
-		return
-	}
-
-	for i := range net.Neurons {
-		for j := range net.Neurons[i].Connections {
-			conn := &net.Neurons[i].Connections[j]
-			if conn.Eligibility == 0 {
-				continue
-			}
-
-			decayed := (int32(conn.Eligibility) * int32(rate)) >> 16
-			conn.Eligibility = int16(decayed)
-		}
-	}
-}
+// Maintain is a no-op for pure STDP. There are no eligibility
+// traces to decay — weight changes are applied immediately.
+func (s *Rule) Maintain(net *bio.Network, tick uint32) {}

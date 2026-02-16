@@ -6,7 +6,8 @@ package biomimetic
 // be swapped in without changing the core engine.
 //
 // Implementations live in subpackages under learning/:
-//   - learning/stdp:       Reward-modulated STDP (three-factor)
+//   - learning/stdp:       Pure STDP (unsupervised Hebbian)
+//   - learning/rstdp:      Reward-modulated STDP (three-factor)
 //   - learning/predictive: Predictive learning (self-supervised)
 //
 // All methods receive the current network counter tick for
