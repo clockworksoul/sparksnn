@@ -114,7 +114,6 @@ func TestNeuronRefractoryPeriod(t *testing.T) {
 		DecayRate:       32768,
 		LastInteraction: 5,
 		LastFired:       5,
-		HasFired:        true,
 	}
 
 	// Above threshold but in refractory period (fired at 5, refractory=5, so blocked until 10)

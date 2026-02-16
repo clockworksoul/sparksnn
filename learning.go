@@ -182,12 +182,9 @@ func (s *STDPRule) OnPostFire(incoming []IncomingConnection, postFiredAt uint32)
 		}
 
 		// SourceIndex has been repurposed to hold the source neuron's
-		// LastFired tick (see Network.getIncomingConnections).
-		// We use a special sentinel: if the source has HasFired=false
-		// (LastFired==0 and we haven't set it), we skip. But tick 0 is
-		// a valid fire time, so we use the convention that
-		// getIncomingConnections adds 1 to LastFired, and we subtract
-		// it here. See getIncomingConnections.
+		// LastFired tick + 1 (see Network.getIncomingConnections).
+		// Zero means "never fired" (LastFired==0 in the neuron).
+		// Non-zero values are the actual LastFired tick + 1.
 		encodedFiredAt := in.SourceIndex
 		if encodedFiredAt == 0 {
 			continue // Source has never fired

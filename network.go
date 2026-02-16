@@ -75,6 +75,7 @@ func NewNetwork(size uint32, baseline, threshold int16, decayRate uint16, refrac
 
 	return &Network{
 		Neurons:          neurons,
+		Counter:          1, // Start at 1 so LastFired=0 always means "never fired"
 		DefaultDecayRate: decayRate,
 		RefractoryPeriod: refractoryPeriod,
 	}
@@ -124,7 +125,7 @@ func (net *Network) getIncomingConnections(neuronIdx uint32) []IncomingConnectio
 	for i, in := range incoming {
 		sourceNeuron := &net.Neurons[in.SourceIndex]
 		var encoded uint32
-		if sourceNeuron.HasFired {
+		if sourceNeuron.LastFired > 0 {
 			// Neuron has fired at some point. Encode as LastFired + 1.
 			encoded = sourceNeuron.LastFired + 1
 		}
@@ -170,7 +171,6 @@ func (net *Network) Stimulate(index uint32, weight int16) {
 func (net *Network) fireIdx(idx uint32) {
 	neuron := &net.Neurons[idx]
 	neuron.LastFired = net.Counter
-	neuron.HasFired = true
 
 	if net.UsePostFireReset {
 		neuron.Activation = net.PostFireReset
