@@ -1,6 +1,6 @@
 # Biomimetic Neural Architecture
 
-*A speculative design for a neural computation model using sparse, event-driven, independently functional units instead of dense matrix transforms.*
+*A graph-based neural computation framework that replaces dense matrix multiplication with sparse, event-driven signal propagation — inspired by biological neural systems, built for machine learning.*
 
 **Author:** Matt Titmus & Dross
 **Status:** Living document / Thought experiment
@@ -8,16 +8,43 @@
 
 ---
 
+## What This Is
+
+This is an alternative compute architecture for neural networks. Instead of dense matrix multiplication, computation happens through sparse, event-driven message passing between simple units arranged in a graph.
+
+**The goal is not to simulate biology.** The goal is to replace `Y = WX + b` with something that scales with *activity* rather than *network size* — and to do it using ideas stolen from the only system that demonstrably solves intelligence at 20 watts.
+
+We borrow from neuroscience when it solves a computational problem. We ignore it when it doesn't. This is engineering, not biology.
+
+### What This Is Not
+
+- **Not a spiking neural network simulator.** We don't model ion channels, membrane potentials, or neurotransmitter dynamics. Tools like NEST and Brian2 serve computational neuroscience. We're building a machine learning architecture.
+- **Not a neuroscience research project.** We don't care whether our model is biologically *accurate*. We care whether it's computationally *useful*.
+- **Not an incremental optimization.** Sparse matrix libraries and pruning techniques make traditional NNs more efficient. We're proposing a different computational primitive entirely — replacing matrix multiplication with graph-based signal propagation.
+
+### Design Philosophy
+
+1. **Biology is a parts catalog, not a blueprint.** Take what works (sparse activation, event-driven compute, local learning rules, temporal dynamics). Leave what doesn't (exact biophysics, evolutionary baggage, biological constraints that don't apply to silicon).
+2. **Justify every biological feature computationally.** If we include something because "the brain does it," we need to articulate *why* it helps computation. Refractory periods aren't here for biological fidelity — they're here because they prevent runaway cascading and create useful temporal dynamics.
+3. **Matrix multiplication is the benchmark.** Every design decision must be evaluated against the question: "Does this let us do something matrices can't, or do it more efficiently?" If neither, cut it.
+4. **Practicality over elegance.** If a hybrid approach works (e.g., a conventional readout layer on top of biomimetic internals), that's fine. Purity is not a goal.
+
 ## Motivation
 
-Modern neural networks rely on dense matrix multiplication — every forward pass computes across the entire weight matrix regardless of how much of that computation is relevant to the input. This works, but it's brute force. Biological neural systems, by contrast, are:
+Modern neural networks rely on dense matrix multiplication — every forward pass computes across the entire weight matrix regardless of how much of that computation is relevant to the input. This works, but it's brute force.
 
-- **Sparse:** The vast majority of neurons are not firing at any given moment
+The fundamental problem is that **computation scales with network size, not with input complexity.** A 10-billion-parameter model does the same amount of work whether you ask it "what's 2+2" or "explain quantum gravity." Every weight participates in every forward pass. Zero times a weight is still a multiply.
+
+Biological neural systems solved this problem differently:
+
+- **Sparse:** The vast majority of neurons are not firing at any given moment (~1-5% active)
 - **Event-driven:** Computation only happens when a neuron is stimulated
 - **Locally connected:** Most neurons connect to a small neighborhood, not the entire network
 - **Energy-efficient:** ~20 watts for the human brain vs. megawatts for large model training
 
-**Core question:** Can we replicate the functional output of dense matrix transforms using a large array of mathematically simple, independently functional units — and gain efficiency by focusing computation only where it's needed?
+These aren't incidental properties of biology — they're engineering solutions to the same scaling problem we face. The brain can't afford O(n²) per thought either.
+
+**Core question:** Can we build a neural computation framework where cost scales with *activity* (the number of neurons that actually contribute to a given computation) rather than *network size* (the total number of parameters)?
 
 ## The Biomimetic Neuron
 
@@ -115,7 +142,7 @@ In biology, there's both an *absolute* refractory period (cannot fire at all) an
 
 ## Properties
 
-### What This Gets Right (Compared to Biology)
+### How This Compares
 
 | Property | Biology | This Model | Traditional NN |
 |---|---|---|---|
@@ -225,20 +252,25 @@ This is the "duct-taped evolutionary solution" — messy, modular, and more powe
 
 ## Related Work
 
-Research in the neighborhood of this idea:
-- **Spiking Neural Networks (SNNs)** — closest existing paradigm
-- **Neuromorphic computing** — Intel Loihi, IBM TrueNorth, BrainScaleS
-- **Numenta / Hierarchical Temporal Memory (HTM)** — Jeff Hawkins' biologically-inspired approach
-- **Leaky Integrate-and-Fire (LIF) models** — computational neuroscience standard
-- **Sparse Distributed Representations** — Numenta's encoding scheme
-- **Liquid State Machines** — reservoir computing with spiking neurons
-- **Neural ODEs** — continuous-time neural computation (different approach, similar motivation)
+Research in the neighborhood of this idea, and how we differ:
+
+| Approach | Relationship | Key Difference |
+|---|---|---|
+| **Spiking Neural Networks (SNNs)** | Closest existing paradigm | SNNs often aim for biological accuracy. We aim for ML utility. We use simpler dynamics (no differential equations) and prioritize learnability over biophysical realism. |
+| **Neuromorphic hardware** (Intel Loihi, IBM TrueNorth, BrainScaleS) | Potential deployment target | These chips are designed for SNNs. Our architecture could map well to them, but we design software-first — it should run efficiently on commodity hardware too. |
+| **Numenta / HTM** | Similar motivation, different architecture | HTM uses sparse distributed representations and cortical column theory. We use simpler neuron models and focus on graph-based signal propagation rather than columnar structure. |
+| **Sparse matrix / pruning techniques** | Optimization of existing paradigm | These make matrix multiplication more efficient. We replace it entirely with a different computational primitive. |
+| **Graph Neural Networks (GNNs)** | Structural similarity | GNNs pass messages on graphs but still use matrix ops at each node and require synchronous forward passes. Our propagation is asynchronous and event-driven. |
+| **Leaky Integrate-and-Fire (LIF)** | Our neuron model is a simplified LIF | We use lazy decay instead of continuous integration — no ODE solving, just a calculation at interaction time. |
+| **Liquid State Machines** | Reservoir computing with spiking neurons | LSMs use a fixed random reservoir. We want the topology itself to be learnable. |
+| **Neural ODEs** | Continuous-time neural computation | Different approach to a similar motivation (computation as a continuous process). Much heavier mathematically. |
 
 ## Notes
 
-- Matt's background is in molecular & cellular biology (4 years of PhD program), not CS. This design comes from understanding the actual biological substrate, not abstracting from existing ML.
+- Matt's background is in molecular & cellular biology (4 years of PhD program), not CS. This design comes from understanding the actual biological substrate, not abstracting from existing ML. The advantage: seeing neural computation as it actually works in nature, not through the lens of how we've historically implemented it in software.
 - The "focus computation where it's needed" property might make this particularly suited for real-time, streaming, or anomaly-detection tasks — problems where most of the input is uninteresting and only occasional signals matter.
-- Even if this never becomes a practical training architecture, it could be valuable as an *inference* architecture — train with matrices, deploy as biomimetic network?
+- Even if this never becomes a practical training architecture, it could be valuable as an *inference* architecture — train with matrices, deploy as biomimetic network. The conversion from trained weights to a sparse graph topology is a research question worth pursuing.
+- **The C. elegans connectome demo** is a validation tool, not the product. It proves the engine can handle real sparse topologies and produce coherent behavior. The real test is whether the architecture can *learn* — solve ML benchmarks through local plasticity rules rather than backpropagation.
 
 ---
 
