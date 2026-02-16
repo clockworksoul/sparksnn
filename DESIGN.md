@@ -184,20 +184,60 @@ The counterargument — "GPUs are optimized for matrices so this would be slower
 ### 1. Learning Rule ⭐ THE hard problem
 How do connections form, strengthen, weaken, and prune? This could occupy an entire PhD.
 
-**Biological inspiration (multi-layered):**
-- **Hebbian plasticity** ("fire together, wire together") — basic association, but too simple alone
-- **Spike-timing-dependent plasticity (STDP)** — *most promising starting point.* Local (no global error signal), temporal (fits our architecture), well-studied. Weight change depends on relative timing of pre/post-synaptic firing.
+#### Primary Candidate: Reward-Modulated STDP (R-STDP)
+
+After surveying the neuromorphic literature (see `research/neuromorphic-landscape.md`), **R-STDP is our primary learning rule candidate.** It bridges the gap between local plasticity and goal-directed behavior:
+
+**How it works (three-phase):**
+
+1. **STDP creates eligibility traces.** When pre-synaptic neuron fires before post-synaptic (causal timing), the synapse is *marked* as a candidate for strengthening. Reverse timing marks it for weakening. These are just candidates — no weight change yet.
+
+```
+If pre fires before post (Δt > 0):  eligibility += A+ × exp(-Δt / τ+)
+If post fires before pre (Δt < 0):  eligibility -= A- × exp(Δt / τ-)
+```
+
+2. **Eligibility traces decay over time.** If no reward signal arrives, the candidate changes fade away. This is a temporal credit window — "did this firing pattern lead to something good within the next N ticks?"
+
+3. **Global reward/punishment signal consolidates changes.** When a reward signal arrives (analogous to dopamine in biology), all outstanding eligibility traces are consolidated into actual weight changes:
+
+```
+ΔW = reward_signal × eligibility_trace
+```
+
+Positive reward + positive eligibility = strengthen. Positive reward + negative eligibility = weaken. Negative reward inverts both.
+
+**Why R-STDP fits our architecture:**
+- **Local:** Only needs spike timing (which we track via `last_interaction` and `refractory_until`) + a global scalar reward signal
+- **Temporal:** Naturally uses the timing dynamics built into our neuron model
+- **Integer-friendly:** Eligibility traces and decay can be computed with the same lazy-decay approach we use for activation
+- **Hardware-proven:** Loihi 2 implements three-factor learning rules (STDP + reward modulation) natively
+- **Solves credit assignment:** The reward signal provides direction; STDP provides local structure
+
+**Implementation note:** The learning rule should be implemented behind an interface so we can swap in alternatives. R-STDP is our starting point, not necessarily our destination. See the **🔬 Predictive Learning Rule** TODO below.
+
+#### Other Biological Mechanisms (for future consideration)
+- **Hebbian plasticity** ("fire together, wire together") — basic association, subsumed by STDP
 - **Long-term potentiation/depression (LTP/LTD)** — memory consolidation, threshold-based permanence
 - **Pruning during sleep** — the brain cleans up connections offline. Could we do periodic pruning passes?
 - **Neurogenesis & dendritic growth** — new connections forming over time
 - **Myelination** — changing signal propagation speed (connection "priority")
 
-**Computational approaches:**
-- **Backpropagation equivalent?** — Can error signals propagate backward through this graph? Unclear — the lack of layers makes this non-obvious.
-- **Evolutionary/genetic approach** — optimize topology and weights through selection pressure
-- **Reward-modulated STDP** — a hybrid: STDP for local updates, global reward signal for direction
+#### The Credit Assignment Problem
+Backprop solves credit assignment by propagating error gradients backward through layers. Our architecture has no layers. R-STDP addresses this differently: STDP handles the *where* (which synapses were active in the right pattern) and the reward signal handles the *what* (was the outcome good or bad). The eligibility trace window handles the *when* (how recently did the activity occur relative to the reward).
 
-**The core tension:** Backprop works because it has a clear error gradient to follow. Biology doesn't have backprop and manages fine — but it has billions of years of evolutionary optimization baked into the architecture. We need to find the minimal viable learning rule.
+This is less precise than backprop — it won't find the mathematically optimal gradient. But it's also more robust, more biologically plausible, and naturally supports continual learning without catastrophic forgetting.
+
+#### 🔬 Predictive Learning Rule (HIGH PRIORITY INVESTIGATION)
+A 2023 Nature Communications paper ("Sequence anticipation and spike-timing-dependent plasticity emerge from a predictive learning rule") suggests that STDP may not be the fundamental mechanism at all — it may *emerge* from a simpler rule: **neurons that learn to predict their own future inputs naturally develop STDP-like behavior.**
+
+If true, this is potentially transformative for our architecture. A predictive learning rule would:
+- Be simpler to implement than explicit STDP
+- Naturally produce sequence learning and anticipation
+- Potentially be more powerful (STDP is a side-effect, not the goal)
+- Give us a genuine differentiator from other neuromorphic approaches
+
+**TODO:** Read the full paper, understand the mathematical formulation, and evaluate whether this could replace R-STDP as our primary learning rule. This could be our secret sauce.
 
 ### 2. Information Output ⭐ Hard but tractable
 Input is straightforward — anything can be linearized into stimulation patterns. Output is harder.

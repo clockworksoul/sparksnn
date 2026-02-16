@@ -31,6 +31,13 @@ type Connection struct {
 	// excitatory; negative values are inhibitory. Clamped to
 	// [MinWeight, MaxWeight].
 	Weight int16
+
+	// Eligibility is the current eligibility trace for this connection.
+	// Set by STDP timing rules, decayed each tick, and consolidated
+	// into weight changes when a reward signal arrives. Positive =
+	// candidate for strengthening, negative = candidate for weakening.
+	// Zero when no learning activity is pending.
+	Eligibility int16
 }
 
 // Neuron represents a single biomimetic neuron. It is a simple data
@@ -76,6 +83,11 @@ type Neuron struct {
 	// cannot fire. Prevents runaway cascading and models the
 	// biological refractory period.
 	RefractoryUntil uint32
+
+	// LastFired is the counter value when this neuron last fired.
+	// Used by learning rules (e.g., STDP) to calculate spike timing
+	// between pre- and post-synaptic neurons. Zero if never fired.
+	LastFired uint32
 
 	// Connections are the outgoing synaptic connections to other
 	// neurons. Each connection has a target index and a signed weight.
