@@ -22,9 +22,9 @@ func TestClampAdd(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := clampAdd(tt.base, tt.delta)
+			got := ClampAdd(tt.base, tt.delta)
 			if got != tt.expected {
-				t.Errorf("clampAdd(%d, %d) = %d, want %d",
+				t.Errorf("ClampAdd(%d, %d) = %d, want %d",
 					tt.base, tt.delta, got, tt.expected)
 			}
 		})
