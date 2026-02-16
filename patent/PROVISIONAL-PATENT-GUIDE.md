@@ -14,7 +14,7 @@
 6. Pay filing fee: **$65** (micro entity) or **$130** (small entity)
 7. Set calendar reminder: 12 months to file nonprovisional or abandon
 
-**Estimated total cost:** $65–$130 filing fee + $0 if self-filed
+**Estimated total cost:** $130 filing fee (small entity) + $0 if self-filed
 **Estimated prep time:** 1–2 weekends of focused writing
 **Timeline pressure:** None yet — but file before any public disclosure (arXiv, blog, GitHub public)
 
@@ -261,7 +261,8 @@ That said — I'm genuinely fine with this. The construct called "waste" isn't i
 
 | When | Action |
 |---|---|
-| **Now** | Send email to Yext legal requesting Covenants Agreement copy |
+| **Done** | ~~Send email to Yext legal requesting Covenants Agreement copy~~ ✅ |
+| **Tomorrow** | Talk to Adam (VP Eng) about side project IP |
 | **Week 1-2** | Review agreement, resolve IP question |
 | **Week 2-3** | Prepare specification from DESIGN.md (I can draft this) |
 | **Week 3-4** | Create diagrams/drawings |
@@ -294,8 +295,8 @@ The provisional protects our priority date. Publication establishes prior art th
 | USPTO filing fee (small entity) | $130 |
 | Patent attorney consultation (optional) | $150-300 |
 | Professional drawings (optional) | $100-300 |
-| **DIY total** | **$65** |
-| **With attorney consult** | **$215-365** |
+| **DIY total** | **$130** |
+| **With attorney consult** | **$280-430** |
 
 ### If We Later File Nonprovisional
 | Item | Cost |
@@ -318,7 +319,7 @@ This is the "if we go all the way" cost. The provisional gives us 12 months to d
 
 ## 9. Preparation Checklist
 
-- [ ] **BLOCKER:** Get copy of Yext Covenants Agreement
+- [x] **BLOCKER:** Get copy of Yext Covenants Agreement — email sent to legal (2026-02-14)
 - [ ] **BLOCKER:** Review invention assignment clause, confirm IP ownership
 - [ ] Optional: 30-min patent attorney consultation on employment agreement
 - [ ] Create USPTO Patent Center account
