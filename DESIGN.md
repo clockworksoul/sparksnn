@@ -84,7 +84,6 @@ Neurons live in a single contiguous array. Connections reference targets by uint
 - **Serialization:** Array + indices can be dumped/loaded trivially. Pointer graphs require reconstruction.
 - **Parallelism:** Indices are easy to partition across cores or machines. Pointers are process-local.
 - **Capacity:** uint32 supports >4 billion neuron indices — more than sufficient.
-```
 
 ### Design Decision: Integer Arithmetic
 
