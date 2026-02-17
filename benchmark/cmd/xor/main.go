@@ -98,9 +98,9 @@ func runWithReward(rule bio.LearningRule, name string, cfg xor.NetworkConfig) *b
 		predicted := xor.Classify(spikeCounts)
 
 		if predicted == sample.Label {
-			net.Reward(50)
+			net.Reward(500)
 		} else {
-			net.Reward(-25)
+			net.Reward(-300)
 		}
 
 		if (i+1)%100 == 0 {

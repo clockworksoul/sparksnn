@@ -84,6 +84,15 @@ type NetworkConfig struct {
 	// Lower values leave room for structural plasticity to discover
 	// the right topology.
 	InitialDensity float64
+
+	// NoiseProbability is the per-tick probability that a hidden
+	// neuron receives a random excitatory "miniature EPSP" (spontaneous
+	// background activity). Prevents dead neurons, enables exploration.
+	// 0 = no noise, 0.05 = 5% chance per neuron per tick.
+	NoiseProbability float64
+
+	// NoiseWeight is the stimulation weight for noise events.
+	NoiseWeight int32
 }
 
 // DefaultConfig returns reasonable defaults for XOR.
@@ -97,8 +106,10 @@ func DefaultConfig() NetworkConfig {
 		Threshold:        150,
 		DecayRate:        45000, // ~69% retention — faster decay
 		RefractoryPeriod: 5,
-		InitWeightMax:    150,
-		InitialDensity:   1.0, // fully connected by default (backward compat)
+		InitWeightMax:    500,  // avg ~250, well above threshold — single inputs can fire hidden neurons
+		InitialDensity:   1.0,  // fully connected by default (backward compat)
+		NoiseProbability: 0.02, // 2% chance per hidden neuron per tick — subtle background activity
+		NoiseWeight:      100,  // sub-threshold nudge, needs accumulation to fire
 	}
 }
 
@@ -146,6 +157,9 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 	}
 
 	// Input → Hidden (learnable, random positive weights, density-controlled)
+	// Start positive so hidden neurons are alive. Learning rules will
+	// push some weights negative to create the inhibitory connections
+	// needed for XOR (e.g., "A AND NOT B" requires B→H1 to go negative).
 	for i := layout.InputStart; i < layout.InputEnd; i++ {
 		for h := layout.HiddenStart; h < layout.HiddenEnd; h++ {
 			if cfg.InitialDensity < 1.0 && rand.Float64() > cfg.InitialDensity {
@@ -201,6 +215,15 @@ func PresentSample(net *bio.Network, layout Layout, sample benchmark.Sample, cfg
 		for i, val := range sample.Inputs {
 			if val > 0 && rand.IntN(256) < int(val) {
 				net.Stimulate(layout.InputStart+uint32(i), cfg.InputWeight)
+			}
+		}
+
+		// Spontaneous background noise on hidden neurons (miniature EPSPs)
+		if cfg.NoiseProbability > 0 {
+			for h := layout.HiddenStart; h < layout.HiddenEnd; h++ {
+				if rand.Float64() < cfg.NoiseProbability {
+					net.Stimulate(h, cfg.NoiseWeight)
+				}
 			}
 		}
 
