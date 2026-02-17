@@ -26,8 +26,8 @@ func (Task) NumClasses() int    { return 2 }
 // enough training signal. Each pattern appears 250 times (1000 total).
 func (Task) TrainingSamples() []benchmark.Sample {
 	base := xorPatterns()
-	samples := make([]benchmark.Sample, 0, len(base)*250)
-	for i := 0; i < 250; i++ {
+	samples := make([]benchmark.Sample, 0, len(base)*1000)
+	for i := 0; i < 1000; i++ {
 		samples = append(samples, base...)
 	}
 	return samples
@@ -77,6 +77,13 @@ type NetworkConfig struct {
 	// InitWeightMax is the upper bound for random initial weights
 	// on learnable connections.
 	InitWeightMax int16
+
+	// InitialDensity controls what fraction of possible learnable
+	// connections are created at startup. 1.0 = fully connected,
+	// 0.25 = each possible connection has 25% chance of existing.
+	// Lower values leave room for structural plasticity to discover
+	// the right topology.
+	InitialDensity float64
 }
 
 // DefaultConfig returns reasonable defaults for XOR.
@@ -91,6 +98,7 @@ func DefaultConfig() NetworkConfig {
 		DecayRate:        45000, // ~69% retention — faster decay
 		RefractoryPeriod: 5,
 		InitWeightMax:    150,
+		InitialDensity:   1.0, // fully connected by default (backward compat)
 	}
 }
 
@@ -137,9 +145,12 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 		OutputEnd:   uint32(total),
 	}
 
-	// Input → Hidden (learnable, random positive weights)
+	// Input → Hidden (learnable, random positive weights, density-controlled)
 	for i := layout.InputStart; i < layout.InputEnd; i++ {
 		for h := layout.HiddenStart; h < layout.HiddenEnd; h++ {
+			if cfg.InitialDensity < 1.0 && rand.Float64() > cfg.InitialDensity {
+				continue // skip this connection
+			}
 			w := int16(rand.IntN(int(cfg.InitWeightMax))) + 1
 			net.Connect(i, h, w)
 		}
@@ -164,9 +175,12 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 		}
 	}
 
-	// Hidden → Output (learnable, random positive weights)
+	// Hidden → Output (learnable, random positive weights, density-controlled)
 	for h := layout.HiddenStart; h < layout.HiddenEnd; h++ {
 		for o := layout.OutputStart; o < layout.OutputEnd; o++ {
+			if cfg.InitialDensity < 1.0 && rand.Float64() > cfg.InitialDensity {
+				continue
+			}
 			w := int16(rand.IntN(int(cfg.InitWeightMax))) + 1
 			net.Connect(h, o, w)
 		}
@@ -329,9 +343,15 @@ func Run(rule bio.LearningRule, ruleName string, cfg NetworkConfig) *benchmark.T
 	})
 
 	checkEvery := 100 // evaluate every 100 training samples
+	totalPruned, totalGrown := 0, 0
 
 	for i, sample := range trainSamples {
 		PresentSample(net, layout, sample, cfg)
+
+		// Trigger structural plasticity after each sample
+		p, g := net.Remodel()
+		totalPruned += p
+		totalGrown += g
 
 		if (i+1)%checkEvery == 0 {
 			acc, dead, sr := Evaluate(net, layout, task, cfg)
@@ -355,5 +375,7 @@ func Run(rule bio.LearningRule, ruleName string, cfg NetworkConfig) *benchmark.T
 	}
 
 	tracker.PrintReport(os.Stdout, task.Name(), ruleName)
+	fmt.Fprintf(os.Stderr, "[%s] Structural changes: %d pruned, %d grown\n",
+		ruleName, totalPruned, totalGrown)
 	return tracker
 }
