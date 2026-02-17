@@ -17,6 +17,11 @@ import (
 
 func main() {
 	cfg := xor.DefaultConfig()
+	cfg.HiddenSize = 2            // minimal — matches proven handwired/learned topology
+	cfg.UseInhibition = false     // no lateral inhibition — learning creates competition
+	cfg.DeterministicInput = true // clean signal, no rate coding noise
+	cfg.TicksPerSample = 50      // match minimal test
+	cfg.RestTicks = 20
 
 	type trial struct {
 		name    string
@@ -40,9 +45,8 @@ func main() {
 
 	trials := []trial{
 		{name: "No Learning", rule: bio.NoOpLearning{}},
-		{name: "Pure STDP", rule: stdp.NewRule(stdpCfg)},
-		{name: "R-STDP", rule: rstdp.NewRule(rstdpCfg), reward: true},
-		{name: "Predictive", rule: predictive.NewRule(predCfg)},
+		{name: "R-STDP+Asym", rule: rstdp.NewRule(rstdpCfg), reward: true},
+		{name: "Asymmetric", rule: bio.NoOpLearning{}, reward: true},
 	}
 
 	for i := range trials {
@@ -97,11 +101,23 @@ func runWithReward(rule bio.LearningRule, name string, cfg xor.NetworkConfig) *b
 		spikeCounts := xor.PresentSample(net, layout, sample, cfg)
 		predicted := xor.Classify(spikeCounts)
 
+		// Standard R-STDP reward
 		if predicted == sample.Label {
 			net.Reward(500)
 		} else {
 			net.Reward(-300)
 		}
+
+		// Asymmetric activity-reward update: the symmetry-breaking
+		// key to learning inhibitory connections. For each learnable
+		// connection, if source fired but target didn't, push weight
+		// opposite to reward. This creates differentiation.
+		reward := int32(300)
+		if predicted != sample.Label {
+			reward = -200
+		}
+		activityWindow := uint32(cfg.TicksPerSample + cfg.RestTicks + 10)
+		applyAsymmetricUpdate(net, layout, reward, activityWindow)
 
 		if (i+1)%100 == 0 {
 			acc, dead, sr := xor.Evaluate(net, layout, task, cfg)
@@ -126,4 +142,64 @@ func runWithReward(rule bio.LearningRule, name string, cfg xor.NetworkConfig) *b
 
 	tracker.PrintReport(os.Stdout, task.Name(), name)
 	return tracker
+}
+
+// applyAsymmetricUpdate applies the symmetry-breaking activity-reward
+// learning rule to all learnable connections (input→hidden, hidden→output).
+// When source fired but target didn't, weight moves OPPOSITE to reward.
+// This is the key mechanism for discovering inhibitory connections.
+func applyAsymmetricUpdate(net *bio.Network, layout xor.Layout, reward int32, window uint32) {
+	now := net.Counter
+	maxW := int32(5000) // cap weight magnitude
+
+	isRecentlyActive := func(idx uint32) bool {
+		n := &net.Neurons[idx]
+		return n.LastFired > 0 && now-n.LastFired < window
+	}
+
+	clampWeight := func(w int32) int32 {
+		if w > maxW {
+			return maxW
+		}
+		if w < -maxW {
+			return -maxW
+		}
+		return w
+	}
+
+	// Update input→hidden connections
+	for i := layout.InputStart; i < layout.InputEnd; i++ {
+		srcActive := isRecentlyActive(i)
+		for j := range net.Neurons[i].Connections {
+			conn := &net.Neurons[i].Connections[j]
+			if conn.Target < layout.HiddenStart || conn.Target >= layout.HiddenEnd {
+				continue
+			}
+			tgtActive := isRecentlyActive(conn.Target)
+
+			if srcActive && tgtActive {
+				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, reward/4))
+			} else if srcActive && !tgtActive {
+				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, -reward/8))
+			}
+		}
+	}
+
+	// Update hidden→output connections
+	for h := layout.HiddenStart; h < layout.HiddenEnd; h++ {
+		srcActive := isRecentlyActive(h)
+		for j := range net.Neurons[h].Connections {
+			conn := &net.Neurons[h].Connections[j]
+			if conn.Target < layout.OutputStart || conn.Target >= layout.OutputEnd {
+				continue
+			}
+			tgtActive := isRecentlyActive(conn.Target)
+
+			if srcActive && tgtActive {
+				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, reward/4))
+			} else if srcActive && !tgtActive {
+				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, -reward/8))
+			}
+		}
+	}
 }

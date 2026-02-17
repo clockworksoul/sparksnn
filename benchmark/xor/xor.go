@@ -85,6 +85,11 @@ type NetworkConfig struct {
 	// the right topology.
 	InitialDensity float64
 
+	// UseInhibition enables lateral inhibition (excitatory→inhibitory→
+	// all-other-excitatory). When false, the network is simpler:
+	// just input→hidden→output with no inhibitory interneurons.
+	UseInhibition bool
+
 	// NoiseProbability is the per-tick probability that a hidden
 	// neuron receives a random excitatory "miniature EPSP" (spontaneous
 	// background activity). Prevents dead neurons, enables exploration.
@@ -93,6 +98,10 @@ type NetworkConfig struct {
 
 	// NoiseWeight is the stimulation weight for noise events.
 	NoiseWeight int32
+
+	// DeterministicInput uses fixed stimulation every tick instead
+	// of probabilistic rate coding. Cleaner signal for small problems.
+	DeterministicInput bool
 }
 
 // DefaultConfig returns reasonable defaults for XOR.
@@ -138,7 +147,10 @@ type Layout struct {
 func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layout) {
 	numInput := 2
 	numHidden := cfg.HiddenSize
-	numInhib := cfg.HiddenSize
+	numInhib := 0
+	if cfg.UseInhibition {
+		numInhib = cfg.HiddenSize
+	}
 	numOutput := 2
 	total := numInput + numHidden + numInhib + numOutput
 
@@ -170,22 +182,25 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 		}
 	}
 
-	// Hidden excitatory → paired inhibitory (fixed, strong)
-	for i := 0; i < numHidden; i++ {
-		excit := layout.HiddenStart + uint32(i)
-		inhib := layout.InhibStart + uint32(i)
-		net.Connect(excit, inhib, 500) // strong enough to always fire
-	}
+	// Lateral inhibition (optional)
+	if cfg.UseInhibition {
+		// Hidden excitatory → paired inhibitory (fixed, strong)
+		for i := 0; i < numHidden; i++ {
+			excit := layout.HiddenStart + uint32(i)
+			inhib := layout.InhibStart + uint32(i)
+			net.Connect(excit, inhib, 500) // strong enough to always fire
+		}
 
-	// Inhibitory → all OTHER excitatory (lateral inhibition, fixed)
-	for i := 0; i < numInhib; i++ {
-		inhib := layout.InhibStart + uint32(i)
-		for j := 0; j < numHidden; j++ {
-			if i == j {
-				continue // don't inhibit own pair
+		// Inhibitory → all OTHER excitatory (lateral inhibition, fixed)
+		for i := 0; i < numInhib; i++ {
+			inhib := layout.InhibStart + uint32(i)
+			for j := 0; j < numHidden; j++ {
+				if i == j {
+					continue // don't inhibit own pair
+				}
+				excit := layout.HiddenStart + uint32(j)
+				net.Connect(inhib, excit, cfg.InhibWeight)
 			}
-			excit := layout.HiddenStart + uint32(j)
-			net.Connect(inhib, excit, cfg.InhibWeight)
 		}
 	}
 
@@ -211,10 +226,16 @@ func PresentSample(net *bio.Network, layout Layout, sample benchmark.Sample, cfg
 
 	// Present phase: rate-encode inputs over TicksPerSample ticks
 	for tick := 0; tick < cfg.TicksPerSample; tick++ {
-		// Stimulate input neurons probabilistically
+		// Stimulate input neurons
 		for i, val := range sample.Inputs {
-			if val > 0 && rand.IntN(256) < int(val) {
-				net.Stimulate(layout.InputStart+uint32(i), cfg.InputWeight)
+			if cfg.DeterministicInput {
+				if val > 0 {
+					net.Stimulate(layout.InputStart+uint32(i), cfg.InputWeight)
+				}
+			} else {
+				if val > 0 && rand.IntN(256) < int(val) {
+					net.Stimulate(layout.InputStart+uint32(i), cfg.InputWeight)
+				}
 			}
 		}
 
