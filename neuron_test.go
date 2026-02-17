@@ -5,9 +5,9 @@ import "testing"
 func TestClampAdd(t *testing.T) {
 	tests := []struct {
 		name     string
-		base     int16
-		delta    int16
-		expected int16
+		base int32
+		delta int32
+		expected int32
 	}{
 		{"normal positive", 100, 50, 150},
 		{"normal negative", 100, -50, 50},

@@ -6,7 +6,7 @@ package biomimetic
 // biological signal propagation delay.
 type PendingStimulation struct {
 	Target uint32
-	Weight int16
+	Weight int32
 }
 
 // Network is a collection of neurons stored in a contiguous array.
@@ -36,7 +36,7 @@ type Network struct {
 	// PostFireReset is the activation level a neuron is set to after
 	// firing. Models hyperpolarization when negative. Only used when
 	// UsePostFireReset is true; otherwise neurons reset to Baseline.
-	PostFireReset int16
+	PostFireReset int32
 
 	// UsePostFireReset enables the PostFireReset value instead of
 	// resetting to Baseline after firing.
@@ -67,7 +67,7 @@ type Network struct {
 // NewNetwork creates a network with the given number of neurons.
 // All neurons are initialized to the same baseline, threshold, and
 // zero activation.
-func NewNetwork(size uint32, baseline, threshold int16, decayRate uint16, refractoryPeriod uint32) *Network {
+func NewNetwork(size uint32, baseline, threshold int32, decayRate uint16, refractoryPeriod uint32) *Network {
 	neurons := make([]Neuron, size)
 	for i := range neurons {
 		neurons[i] = Neuron{
@@ -88,7 +88,7 @@ func NewNetwork(size uint32, baseline, threshold int16, decayRate uint16, refrac
 
 // Connect adds a directed connection from neuron at index `from` to
 // neuron at index `to` with the given weight.
-func (net *Network) Connect(from, to uint32, weight int16) {
+func (net *Network) Connect(from, to uint32, weight int32) {
 	net.Neurons[from].Connections = append(net.Neurons[from].Connections, Connection{
 		Target: to,
 		Weight: weight,
@@ -147,7 +147,7 @@ func (net *Network) getIncomingConnections(neuronIdx uint32) []IncomingConnectio
 // Reward delivers a global reward or punishment signal to the network.
 // The learning rule uses this to consolidate eligibility traces into
 // actual weight changes. Positive = reward, negative = punishment.
-func (net *Network) Reward(signal int16) {
+func (net *Network) Reward(signal int32) {
 	if net.LearningRule != nil {
 		net.LearningRule.OnReward(net, signal, net.Counter)
 	}
@@ -156,7 +156,7 @@ func (net *Network) Reward(signal int16) {
 // Stimulate sends an external signal to a specific neuron. If the
 // neuron fires, its downstream targets are queued for the next tick.
 // This is the entry point for injecting input into the network.
-func (net *Network) Stimulate(index uint32, weight int16) {
+func (net *Network) Stimulate(index uint32, weight int32) {
 	if index >= uint32(len(net.Neurons)) {
 		return
 	}
@@ -276,7 +276,7 @@ func (net *Network) Pending() int {
 // Note: this does NOT apply decay. It reads raw stored activation
 // values. For accurate readings, consider calling at a consistent
 // point relative to stimulation.
-func (net *Network) ActiveNeurons(above int16) []uint32 {
+func (net *Network) ActiveNeurons(above int32) []uint32 {
 	var active []uint32
 	for i, n := range net.Neurons {
 		if n.Activation > above {

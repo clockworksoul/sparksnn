@@ -25,12 +25,12 @@ import (
 // Config holds tunable parameters for the R-STDP learning rule.
 type Config struct {
 	// APlus is the maximum eligibility increase for causal timing
-	// (pre fires before post). Expressed as int16.
-	APlus int16
+	// (pre fires before post).
+	APlus int32
 
 	// AMinus is the maximum eligibility decrease for anti-causal
-	// timing (post fires before pre). Expressed as int16.
-	AMinus int16
+	// timing (post fires before pre).
+	AMinus int32
 
 	// TauPlus is the time constant (in ticks) for the causal
 	// exponential decay window. Larger = wider window.
@@ -47,7 +47,7 @@ type Config struct {
 
 	// MaxWeightMagnitude caps the absolute value of weights after
 	// learning. Prevents runaway weight growth. 0 = use MaxWeight.
-	MaxWeightMagnitude int16
+	MaxWeightMagnitude int32
 }
 
 // DefaultConfig returns reasonable default R-STDP parameters.
@@ -75,7 +75,7 @@ func NewRule(config Config) *Rule {
 // Window calculates the exponentially-decayed magnitude for a
 // given time difference and time constant. Returns 0 if dt exceeds
 // a reasonable window (6× tau).
-func Window(dt uint32, amplitude int16, tau uint32) int16 {
+func Window(dt uint32, amplitude int32, tau uint32) int32 {
 	if tau == 0 || dt > tau*6 {
 		return 0
 	}
@@ -83,15 +83,15 @@ func Window(dt uint32, amplitude int16, tau uint32) int16 {
 	// Fixed-point retention: exp(-1/tau) * 65536
 	retention := uint32(math.Round(math.Exp(-1.0/float64(tau)) * 65536))
 
-	result := int32(amplitude)
+	result := int64(amplitude)
 	for i := uint32(0); i < dt; i++ {
-		result = (result * int32(retention)) >> 16
+		result = (result * int64(retention)) >> 16
 		if result == 0 {
 			return 0
 		}
 	}
 
-	return int16(result)
+	return int32(result)
 }
 
 // OnSpikePropagation evaluates pre-before-post timing. If the
@@ -139,7 +139,7 @@ func (s *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 
 // OnReward consolidates eligibility traces into actual weight
 // changes. Positive reward + positive eligibility = strengthen.
-func (s *Rule) OnReward(net *bio.Network, reward int16, tick uint32) {
+func (s *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {
 	if reward == 0 {
 		return
 	}
@@ -156,15 +156,15 @@ func (s *Rule) OnReward(net *bio.Network, reward int16, tick uint32) {
 				continue
 			}
 
-			delta := (int32(reward) * int32(conn.Eligibility)) >> 8
-			if delta > int32(bio.MaxWeight) {
-				delta = int32(bio.MaxWeight)
+			delta := (int64(reward) * int64(conn.Eligibility)) >> 8
+			if delta > int64(bio.MaxWeight) {
+				delta = int64(bio.MaxWeight)
 			}
-			if delta < int32(bio.MinWeight) {
-				delta = int32(bio.MinWeight)
+			if delta < int64(bio.MinWeight) {
+				delta = int64(bio.MinWeight)
 			}
 
-			conn.Weight = bio.ClampAdd(conn.Weight, int16(delta))
+			conn.Weight = bio.ClampAdd(conn.Weight, int32(delta))
 
 			if maxMag > 0 && maxMag < bio.MaxWeight {
 				if conn.Weight > maxMag {
@@ -194,8 +194,8 @@ func (s *Rule) Maintain(net *bio.Network, tick uint32) {
 				continue
 			}
 
-			decayed := (int32(conn.Eligibility) * int32(rate)) >> 16
-			conn.Eligibility = int16(decayed)
+			decayed := (int64(conn.Eligibility) * int64(rate)) >> 16
+			conn.Eligibility = int32(decayed)
 		}
 	}
 }

@@ -6,21 +6,21 @@ import "math"
 
 const (
 	// MaxActivation is the maximum activation level a neuron can reach.
-	MaxActivation int16 = math.MaxInt16 // 32767
+	MaxActivation int32 = math.MaxInt32 // 2147483647
 
 	// MinActivation is the minimum activation level a neuron can reach.
-	MinActivation int16 = math.MinInt16 // -32768
+	MinActivation int32 = math.MinInt32 // -2147483648
 
 	// MaxWeight is the maximum connection weight.
-	MaxWeight int16 = math.MaxInt16
+	MaxWeight int32 = math.MaxInt32
 
 	// MinWeight is the minimum connection weight.
-	MinWeight int16 = math.MinInt16
+	MinWeight int32 = math.MinInt32
 )
 
 // Connection represents a directed synaptic connection from one neuron
 // to another, with a signed weight (positive = excitatory, negative =
-// inhibitory). Weights are clamped to int16 range — no overflow.
+// inhibitory). Weights are clamped to int32 range — no overflow.
 type Connection struct {
 	// Target is the index of the target neuron in the network's neuron
 	// array. Using uint32 indices instead of pointers for cache locality,
@@ -30,14 +30,14 @@ type Connection struct {
 	// Weight is the signed connection strength. Positive values are
 	// excitatory; negative values are inhibitory. Clamped to
 	// [MinWeight, MaxWeight].
-	Weight int16
+	Weight int32
 
 	// Eligibility is the current eligibility trace for this connection.
 	// Set by STDP timing rules, decayed each tick, and consolidated
 	// into weight changes when a reward signal arrives. Positive =
 	// candidate for strengthening, negative = candidate for weakening.
 	// Zero when no learning activity is pending.
-	Eligibility int16
+	Eligibility int32
 }
 
 // Neuron represents a single biomimetic neuron. It is a simple data
@@ -52,17 +52,17 @@ type Neuron struct {
 	// Activation is the current activation level. Clamped to
 	// [MinActivation, MaxActivation]. Decays toward Baseline when
 	// the neuron is not being stimulated.
-	Activation int16
+	Activation int32
 
 	// Baseline is the resting activation level. Activation decays
 	// toward this value over time. Same for all neurons in a network
 	// (but stored per-neuron for flexibility).
-	Baseline int16
+	Baseline int32
 
 	// Threshold is the activation level that triggers firing.
 	// When Activation >= Threshold and the refractory period has
 	// elapsed, the neuron fires and propagates to its connections.
-	Threshold int16
+	Threshold int32
 
 	// LastInteraction is the counter value when this neuron was last
 	// stimulated. Used for lazy decay calculation — idle neurons cost
@@ -91,18 +91,18 @@ type Neuron struct {
 	Connections []Connection
 }
 
-// ClampAdd adds a (possibly negative) int16 value to a base int16,
+// ClampAdd adds a (possibly negative) int32 value to a base int32,
 // clamping the result to [MinActivation, MaxActivation] instead of
 // wrapping on overflow. Exported for use by learning rule subpackages.
-func ClampAdd(base, delta int16) int16 {
-	sum := int32(base) + int32(delta)
-	if sum > int32(MaxActivation) {
+func ClampAdd(base, delta int32) int32 {
+	sum := int64(base) + int64(delta)
+	if sum > int64(MaxActivation) {
 		return MaxActivation
 	}
-	if sum < int32(MinActivation) {
+	if sum < int64(MinActivation) {
 		return MinActivation
 	}
-	return int16(sum)
+	return int32(sum)
 }
 
 // decay calculates how far activation has moved back toward baseline
@@ -118,7 +118,7 @@ func (n *Neuron) decay(now uint32) {
 		return
 	}
 
-	distance := int32(n.Activation) - int32(n.Baseline)
+	distance := int64(n.Activation) - int64(n.Baseline)
 	if distance == 0 {
 		n.LastInteraction = now
 		return
@@ -130,21 +130,21 @@ func (n *Neuron) decay(now uint32) {
 	// A decayRate of 32768 means 50% retention per tick (fast decay).
 	//
 	// For large elapsed values, we cap to avoid excessive looping.
-	// After ~20 ticks at 50% retention, the value is negligible.
-	if elapsed > 32 {
+	// After ~40 ticks at 50% retention, even int32 values are negligible.
+	if elapsed > 64 {
 		n.Activation = n.Baseline
 		n.LastInteraction = now
 		return
 	}
 
 	for i := uint32(0); i < elapsed; i++ {
-		distance = (distance * int32(n.DecayRate)) >> 16
+		distance = (distance * int64(n.DecayRate)) >> 16
 		if distance == 0 {
 			break
 		}
 	}
 
-	n.Activation = int16(int32(n.Baseline) + distance)
+	n.Activation = int32(int64(n.Baseline) + distance)
 	n.LastInteraction = now
 }
 
@@ -161,7 +161,7 @@ func (n *Neuron) decay(now uint32) {
 // fire again until now >= LastFired + refractoryPeriod.
 //
 // Returns true if the neuron fired, false otherwise.
-func (n *Neuron) Stimulate(weight int16, now, refractoryPeriod uint32) bool {
+func (n *Neuron) Stimulate(weight int32, now, refractoryPeriod uint32) bool {
 	// Step 1: Decay
 	n.decay(now)
 

@@ -45,15 +45,15 @@ type ConnInfo struct {
 
 type TickSnapshot struct {
 	Tick        int            `json:"tick"`
-	Activations []int16        `json:"activations"`
+	Activations []int32        `json:"activations"`
 	Fired       []int          `json:"fired"` // indices of neurons that fired
 	TotalFired  int            `json:"totalFired"`
 	Pending     int            `json:"pending"`
 }
 
 type ParamInfo struct {
-	Threshold      int16  `json:"threshold"`
-	Baseline       int16  `json:"baseline"`
+	Threshold      int32  `json:"threshold"`
+	Baseline       int32  `json:"baseline"`
 	RefractoryPeriod uint32 `json:"refractoryPeriod"`
 }
 
@@ -173,7 +173,7 @@ func sortStrings(s []string) {
 
 func main() {
 	stimFlag := flag.String("stimulus", "PLML,PLMR", "comma-separated neuron names to stimulate")
-	stimWeight := flag.Int("weight", 5000, "stimulus weight (int16)")
+	stimWeight := flag.Int("weight", 5000, "stimulus weight (int32)")
 	ticks := flag.Int("ticks", 40, "number of ticks to simulate")
 	output := flag.String("o", "sim.html", "output HTML file")
 	flag.Parse()
@@ -235,7 +235,7 @@ func main() {
 		if !ok {
 			log.Fatalf("unknown neuron: %s", name)
 		}
-		net.Stimulate(idx, int16(*stimWeight))
+		net.Stimulate(idx, int32(*stimWeight))
 	}
 
 	// Run simulation, capture each tick
@@ -244,7 +244,7 @@ func main() {
 	// Tick 0: initial state after stimulus
 	snap0 := TickSnapshot{
 		Tick:        0,
-		Activations: make([]int16, len(net.Neurons)),
+		Activations: make([]int32, len(net.Neurons)),
 		Pending:     net.Pending(),
 	}
 	for i, n := range net.Neurons {
@@ -264,7 +264,7 @@ func main() {
 
 		snap := TickSnapshot{
 			Tick:        t + 1,
-			Activations: make([]int16, len(net.Neurons)),
+			Activations: make([]int32, len(net.Neurons)),
 			TotalFired:  fired,
 			Pending:     net.Pending(),
 		}

@@ -159,7 +159,7 @@ func (t *Tracker) PrintReport(w io.Writer, taskName, ruleName string) {
 
 // WeightStats computes mean and standard deviation for a slice of
 // int16 weights.
-func WeightStats(weights []int16) (mean, stddev float64) {
+func WeightStats(weights []int32) (mean, stddev float64) {
 	if len(weights) == 0 {
 		return 0, 0
 	}

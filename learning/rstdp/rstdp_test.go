@@ -159,7 +159,7 @@ func TestWindow(t *testing.T) {
 	tests := []struct {
 		name string
 		dt   uint32
-		amp  int16
+		amp  int32
 		tau  uint32
 		want bool
 	}{
