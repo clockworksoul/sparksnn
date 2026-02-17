@@ -117,6 +117,7 @@ func DefaultConfig() NetworkConfig {
 		RefractoryPeriod: 5,
 		InitWeightMax:    500,  // avg ~250, well above threshold — single inputs can fire hidden neurons
 		InitialDensity:   1.0,  // fully connected by default (backward compat)
+		UseInhibition:    true, // lateral inhibition by default (backward compat)
 		NoiseProbability: 0.02, // 2% chance per hidden neuron per tick — subtle background activity
 		NoiseWeight:      100,  // sub-threshold nudge, needs accumulation to fire
 	}
