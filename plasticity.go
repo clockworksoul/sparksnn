@@ -34,7 +34,7 @@ type PlasticityConfig struct {
 
 	// PruneThreshold is the weight magnitude below which a
 	// connection is considered weak and eligible for removal.
-	PruneThreshold int16
+	PruneThreshold int32
 
 	// --- Growth ---
 
@@ -52,7 +52,7 @@ type PlasticityConfig struct {
 
 	// InitialWeight is the starting weight for newly grown
 	// connections.
-	InitialWeight int16
+	InitialWeight int32
 
 	// GrowthCandidates is how many random (source, target) pairs
 	// to evaluate per Remodel call. Limits computational cost for
@@ -101,13 +101,13 @@ type PlasticityConfig struct {
 
 	// HomeostaticStep is how much to adjust the threshold per
 	// Remodel call for dead or overactive neurons.
-	HomeostaticStep int16
+	HomeostaticStep int32
 
 	// MinThreshold is the floor for threshold adjustment.
-	MinThreshold int16
+	MinThreshold int32
 
 	// MaxThreshold is the ceiling for threshold adjustment.
-	MaxThreshold int16
+	MaxThreshold int32
 }
 
 // DefaultPlasticityConfig returns reasonable defaults for structural
@@ -222,8 +222,8 @@ func (p *DefaultPlasticity) prune(net *Network) int {
 			if w < 0 {
 				w = -w
 			}
-			if w == math.MinInt16 {
-				// Special case: abs(MinInt16) overflows
+			if w == math.MinInt32 {
+				// Special case: abs(MinInt32) overflows
 				kept = append(kept, conn)
 				continue
 			}

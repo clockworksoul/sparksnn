@@ -107,8 +107,8 @@ type Params struct {
 	// Values < WeightScale attenuate them. 0 means use WeightScale.
 	GapJunctionScale int
 
-	Baseline         int16
-	Threshold        int16
+	Baseline         int32
+	Threshold        int32
 	DecayRate        uint16
 	RefractoryPeriod uint32
 
@@ -117,7 +117,7 @@ type Params struct {
 	// (the neuron goes below resting potential after firing), which
 	// is biologically accurate and critical for preventing runaway
 	// excitation.
-	PostFireReset int16
+	PostFireReset int32
 
 	// UsePostFireReset indicates whether PostFireReset should be
 	// used (since 0 is a valid reset value).
@@ -239,19 +239,19 @@ func BuildNetwork(
 			w = -w * int32(inhibScale)
 		}
 
-		// Clamp to int16 range
-		if w > math.MaxInt16 {
-			w = math.MaxInt16
+		// Clamp to int32 range
+		if w > math.MaxInt32 {
+			w = math.MaxInt32
 		}
-		if w < math.MinInt16 {
-			w = math.MinInt16
+		if w < math.MinInt32 {
+			w = math.MinInt32
 		}
 
-		net.Connect(fromIdx, toIdx, int16(w))
+		net.Connect(fromIdx, toIdx, int32(w))
 
 		// Gap junctions are bidirectional
 		if r.Type == "GapJunction" {
-			net.Connect(toIdx, fromIdx, int16(w))
+			net.Connect(toIdx, fromIdx, int32(w))
 		}
 	}
 

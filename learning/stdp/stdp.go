@@ -22,12 +22,12 @@ import (
 // Config holds tunable parameters for the pure STDP learning rule.
 type Config struct {
 	// APlus is the maximum weight increase for causal timing
-	// (pre fires before post). Expressed as int16.
-	APlus int16
+	// (pre fires before post).
+	APlus int32
 
 	// AMinus is the maximum weight decrease for anti-causal
-	// timing (post fires before pre). Expressed as int16.
-	AMinus int16
+	// timing (post fires before pre).
+	AMinus int32
 
 	// TauPlus is the time constant (in ticks) for the causal
 	// exponential decay window. Larger = wider window.
@@ -39,7 +39,7 @@ type Config struct {
 
 	// MaxWeightMagnitude caps the absolute value of weights after
 	// learning. Prevents runaway weight growth. 0 = use MaxWeight.
-	MaxWeightMagnitude int16
+	MaxWeightMagnitude int32
 }
 
 // DefaultConfig returns reasonable default pure STDP parameters.
@@ -66,7 +66,7 @@ func NewRule(config Config) *Rule {
 // Window calculates the exponentially-decayed magnitude for a
 // given time difference and time constant. Returns 0 if dt exceeds
 // a reasonable window (6× tau).
-func Window(dt uint32, amplitude int16, tau uint32) int16 {
+func Window(dt uint32, amplitude int32, tau uint32) int32 {
 	if tau == 0 || dt > tau*6 {
 		return 0
 	}
@@ -74,15 +74,15 @@ func Window(dt uint32, amplitude int16, tau uint32) int16 {
 	// Fixed-point retention: exp(-1/tau) * 65536
 	retention := uint32(math.Round(math.Exp(-1.0/float64(tau)) * 65536))
 
-	result := int32(amplitude)
+	result := int64(amplitude)
 	for i := uint32(0); i < dt; i++ {
-		result = (result * int32(retention)) >> 16
+		result = (result * int64(retention)) >> 16
 		if result == 0 {
 			return 0
 		}
 	}
 
-	return int16(result)
+	return int32(result)
 }
 
 // clampWeight enforces MaxWeightMagnitude on a connection.
@@ -146,7 +146,7 @@ func (s *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 
 // OnReward is a no-op for pure STDP. Weight changes happen
 // directly from spike timing — no reward signal is needed.
-func (s *Rule) OnReward(net *bio.Network, reward int16, tick uint32) {}
+func (s *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {}
 
 // Maintain is a no-op for pure STDP. There are no eligibility
 // traces to decay — weight changes are applied immediately.

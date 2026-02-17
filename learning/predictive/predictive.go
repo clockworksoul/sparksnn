@@ -34,13 +34,13 @@ type Config struct {
 
 	// MaxWeightMagnitude caps the absolute value of weights after
 	// updates. 0 = no cap (use MaxWeight).
-	MaxWeightMagnitude int16
+	MaxWeightMagnitude int32
 
 	// PredictionScale controls how the prediction v*w is scaled
-	// back into int16 range. The raw product of activation (int16)
-	// times weight (int16) is int32. We right-shift by this amount.
-	// Default: 15 (divides by 32768, mapping the full int16×int16
-	// product range back to int16).
+	// back into range. The raw product of activation (int32)
+	// times weight (int32) is int64. We right-shift by this amount.
+	// Default: 15 (divides by 32768). Adjust based on the magnitude
+	// of weights in your network — larger weights need larger scale.
 	PredictionScale uint8
 }
 
@@ -74,16 +74,16 @@ func NewRule(config Config) *Rule {
 
 // predict computes the predicted input for a connection given the
 // post-synaptic neuron's current activation.
-func (p *Rule) predict(postActivation, weight int16) int16 {
-	product := int32(postActivation) * int32(weight)
+func (p *Rule) predict(postActivation, weight int32) int32 {
+	product := int64(postActivation) * int64(weight)
 	shifted := product >> p.Config.PredictionScale
-	if shifted > int32(bio.MaxWeight) {
+	if shifted > int64(bio.MaxWeight) {
 		return bio.MaxWeight
 	}
-	if shifted < int32(bio.MinWeight) {
+	if shifted < int64(bio.MinWeight) {
 		return bio.MinWeight
 	}
-	return int16(shifted)
+	return int32(shifted)
 }
 
 // OnSpikePropagation is called when a pre-synaptic neuron fires
@@ -104,7 +104,7 @@ func (p *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 		return
 	}
 
-	lr := int32(p.Config.LearningRate)
+	lr := int64(p.Config.LearningRate)
 	scale := p.Config.PredictionScale
 	maxMag := p.Config.MaxWeightMagnitude
 	if maxMag == 0 {
@@ -112,10 +112,10 @@ func (p *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 	}
 
 	// Phase 1: Compute per-synapse prediction errors and global error.
-	var globalError int32
+	var globalError int64
 
 	type synapseError struct {
-		error int16
+		error int32
 		conn  *bio.Connection
 	}
 	errors := make([]synapseError, 0, len(incoming))
@@ -125,26 +125,26 @@ func (p *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 			continue
 		}
 
-		actual := int32(in.Conn.Eligibility)
-		predicted := (actual * int32(in.Conn.Weight)) >> scale
+		actual := int64(in.Conn.Eligibility)
+		predicted := (actual * int64(in.Conn.Weight)) >> scale
 		err := actual - predicted
 
-		if err > int32(bio.MaxWeight) {
-			err = int32(bio.MaxWeight)
+		if err > int64(bio.MaxWeight) {
+			err = int64(bio.MaxWeight)
 		}
-		if err < int32(bio.MinWeight) {
-			err = int32(bio.MinWeight)
+		if err < int64(bio.MinWeight) {
+			err = int64(bio.MinWeight)
 		}
 
-		errors = append(errors, synapseError{error: int16(err), conn: in.Conn})
+		errors = append(errors, synapseError{error: int32(err), conn: in.Conn})
 
-		globalError += err * int32(in.Conn.Weight) >> scale
+		globalError += err * int64(in.Conn.Weight) >> scale
 	}
 
 	// Phase 2: Apply weight updates.
 	for _, se := range errors {
-		term1 := int32(se.error) * int32(se.conn.Eligibility) >> scale
-		term2 := globalError * int32(se.conn.Eligibility) >> scale
+		term1 := int64(se.error) * int64(se.conn.Eligibility) >> scale
+		term2 := globalError * int64(se.conn.Eligibility) >> scale
 
 		delta := (lr * (term1 + term2)) >> 16
 		if delta == 0 && (term1+term2) != 0 {
@@ -155,14 +155,14 @@ func (p *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 			}
 		}
 
-		if delta > int32(bio.MaxWeight) {
-			delta = int32(bio.MaxWeight)
+		if delta > int64(bio.MaxWeight) {
+			delta = int64(bio.MaxWeight)
 		}
-		if delta < int32(bio.MinWeight) {
-			delta = int32(bio.MinWeight)
+		if delta < int64(bio.MinWeight) {
+			delta = int64(bio.MinWeight)
 		}
 
-		se.conn.Weight = bio.ClampAdd(se.conn.Weight, int16(delta))
+		se.conn.Weight = bio.ClampAdd(se.conn.Weight, int32(delta))
 
 		if maxMag > 0 && maxMag < bio.MaxWeight {
 			if se.conn.Weight > maxMag {
@@ -177,7 +177,7 @@ func (p *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 
 // OnReward is a no-op for predictive learning. The rule is fully
 // self-supervised — no external reward signal needed.
-func (p *Rule) OnReward(net *bio.Network, reward int16, tick uint32) {}
+func (p *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {}
 
 // Maintain decays eligibility traces across the network.
 func (p *Rule) Maintain(net *bio.Network, tick uint32) {
@@ -193,8 +193,8 @@ func (p *Rule) Maintain(net *bio.Network, tick uint32) {
 				continue
 			}
 
-			decayed := (int32(conn.Eligibility) * int32(rate)) >> 16
-			conn.Eligibility = int16(decayed)
+			decayed := (int64(conn.Eligibility) * int64(rate)) >> 16
+			conn.Eligibility = int32(decayed)
 		}
 	}
 }

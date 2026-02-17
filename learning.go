@@ -32,7 +32,7 @@ type LearningRule interface {
 	//
 	// For R-STDP: this consolidates eligibility traces into actual
 	// weight changes. For predictive learning: this is a no-op.
-	OnReward(net *Network, reward int16, tick uint32)
+	OnReward(net *Network, reward int32, tick uint32)
 
 	// Maintain is called once per tick for housekeeping: decaying
 	// eligibility traces, pruning dead connections, etc.
@@ -54,5 +54,5 @@ type NoOpLearning struct{}
 
 func (NoOpLearning) OnSpikePropagation(*Connection, uint32, uint32) {}
 func (NoOpLearning) OnPostFire([]IncomingConnection, uint32)        {}
-func (NoOpLearning) OnReward(*Network, int16, uint32)               {}
+func (NoOpLearning) OnReward(*Network, int32, uint32)               {}
 func (NoOpLearning) Maintain(*Network, uint32)                      {}

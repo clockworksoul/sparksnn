@@ -60,13 +60,13 @@ type NetworkConfig struct {
 	RestTicks int
 
 	// InputWeight is the stimulation weight for active inputs.
-	InputWeight int16
+	InputWeight int32
 
 	// InhibWeight is the lateral inhibition weight (negative).
-	InhibWeight int16
+	InhibWeight int32
 
 	// Threshold for hidden and output neurons.
-	Threshold int16
+	Threshold int32
 
 	// DecayRate for all neurons (fixed-point, /65536).
 	DecayRate uint16
@@ -76,7 +76,7 @@ type NetworkConfig struct {
 
 	// InitWeightMax is the upper bound for random initial weights
 	// on learnable connections.
-	InitWeightMax int16
+	InitWeightMax int32
 
 	// InitialDensity controls what fraction of possible learnable
 	// connections are created at startup. 1.0 = fully connected,
@@ -151,7 +151,7 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 			if cfg.InitialDensity < 1.0 && rand.Float64() > cfg.InitialDensity {
 				continue // skip this connection
 			}
-			w := int16(rand.IntN(int(cfg.InitWeightMax))) + 1
+			w := int32(rand.IntN(int(cfg.InitWeightMax))) + 1
 			net.Connect(i, h, w)
 		}
 	}
@@ -181,7 +181,7 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 			if cfg.InitialDensity < 1.0 && rand.Float64() > cfg.InitialDensity {
 				continue
 			}
-			w := int16(rand.IntN(int(cfg.InitWeightMax))) + 1
+			w := int32(rand.IntN(int(cfg.InitWeightMax))) + 1
 			net.Connect(h, o, w)
 		}
 	}
@@ -297,8 +297,8 @@ func Evaluate(net *bio.Network, layout Layout, task benchmark.Task, cfg NetworkC
 
 // CollectWeights gathers all learnable connection weights from
 // the network (input→hidden and hidden→output connections).
-func CollectWeights(net *bio.Network, layout Layout) []int16 {
-	var weights []int16
+func CollectWeights(net *bio.Network, layout Layout) []int32 {
+	var weights []int32
 
 	// Input → Hidden weights
 	for i := layout.InputStart; i < layout.InputEnd; i++ {
