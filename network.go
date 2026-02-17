@@ -209,6 +209,11 @@ func (net *Network) fireIdx(idx uint32) {
 // stimulations from the previous tick. Any neurons that fire during
 // processing queue their downstream targets for the *next* tick.
 //
+// Stimulations are accumulated per neuron before evaluating fire
+// thresholds, modeling biological spatial summation at the soma.
+// This ensures the result is independent of stimulation order
+// within a tick.
+//
 // Returns the number of neurons that fired during this tick.
 func (net *Network) Tick() int {
 	net.Counter++
@@ -217,15 +222,31 @@ func (net *Network) Tick() int {
 	// accumulator. Reuse backing arrays to reduce allocations.
 	net.pending, net.nextPending = net.nextPending, net.pending[:0]
 
-	fired := 0
+	// Phase 1: Accumulate all stimulations per target neuron.
+	// We reuse a map to sum weights. For small networks this is fine;
+	// for large networks we could use a dense array keyed by index.
+	accumulated := make(map[uint32]int64)
 	for _, stim := range net.pending {
-		if stim.Target >= uint32(len(net.Neurons)) {
-			continue
+		if stim.Target < uint32(len(net.Neurons)) {
+			accumulated[stim.Target] += int64(stim.Weight)
+		}
+	}
+
+	// Phase 2: Apply accumulated stimulation and evaluate firing.
+	fired := 0
+	for target, totalWeight := range accumulated {
+		// Clamp accumulated weight to int32 range
+		w := totalWeight
+		if w > int64(MaxActivation) {
+			w = int64(MaxActivation)
+		}
+		if w < int64(MinActivation) {
+			w = int64(MinActivation)
 		}
 
-		neuron := &net.Neurons[stim.Target]
-		if neuron.Stimulate(stim.Weight, net.Counter, net.RefractoryPeriod) {
-			net.fireIdx(stim.Target)
+		neuron := &net.Neurons[target]
+		if neuron.Stimulate(int32(w), net.Counter, net.RefractoryPeriod) {
+			net.fireIdx(target)
 			fired++
 		}
 	}
