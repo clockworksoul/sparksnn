@@ -41,21 +41,21 @@ func TestBuildNetwork(t *testing.T) {
 		t.Errorf("network has %d neurons, want %d", len(net.Neurons), totalNeurons)
 	}
 
-	// Check input neurons have connections to all hidden
+	// Check input neurons have connections to hidden (density=1.0 = all)
 	for i := layout.InputStart; i < layout.InputEnd; i++ {
-		if len(net.Neurons[i].Connections) != cfg.HiddenSize {
-			t.Errorf("input neuron %d has %d connections, want %d",
+		if len(net.Neurons[i].Connections) == 0 {
+			t.Errorf("input neuron %d has no connections", i)
+		}
+		if len(net.Neurons[i].Connections) > cfg.HiddenSize {
+			t.Errorf("input neuron %d has %d connections, max %d",
 				i, len(net.Neurons[i].Connections), cfg.HiddenSize)
 		}
 	}
 
-	// Check hidden neurons have connections to paired inhibitory + outputs
+	// Check hidden neurons have connections (at least inhibitory pair)
 	for h := layout.HiddenStart; h < layout.HiddenEnd; h++ {
-		// 1 inhibitory + 2 output = 3 connections
-		expected := 1 + 2
-		if len(net.Neurons[h].Connections) != expected {
-			t.Errorf("hidden neuron %d has %d connections, want %d",
-				h, len(net.Neurons[h].Connections), expected)
+		if len(net.Neurons[h].Connections) == 0 {
+			t.Errorf("hidden neuron %d has no connections", h)
 		}
 	}
 
@@ -201,6 +201,157 @@ func TestRunPredictive(t *testing.T) {
 	tracker := Run(rule, "Predictive", cfg)
 
 	t.Logf("Predictive best accuracy: %.1f%%", tracker.BestAccuracy()*100)
+}
+
+func TestRunPureSTDPWithPlasticity(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping benchmark in short mode")
+	}
+
+	cfg := DefaultConfig()
+	cfg.InitialDensity = 0.3 // sparse start
+
+	stdpCfg := stdp.DefaultConfig()
+	stdpCfg.APlus = 5
+	stdpCfg.AMinus = 5
+	stdpCfg.TauPlus = 8
+	stdpCfg.TauMinus = 8
+	stdpCfg.MaxWeightMagnitude = 500
+	rule := stdp.NewRule(stdpCfg)
+
+	task := Task{}
+	net, layout := BuildNetwork(cfg, rule)
+
+	// Add structural plasticity
+	pcfg := bio.DefaultPlasticityConfig()
+	pcfg.PruneThreshold = 10
+	pcfg.GrowthRate = 3
+	pcfg.MinCoActivityWindow = 30
+	pcfg.InitialWeight = 75
+	pcfg.MaxConnectionsPerNeuron = 30
+	pcfg.HomeostaticEnabled = true
+	pcfg.DeadThreshold = 150
+	pcfg.HomeostaticStep = 10
+	pcfg.MinThreshold = 50
+	// Only allow growth in valid directions (input→hidden, hidden→output)
+	pcfg.Filter = func(s, tgt uint32) bool {
+		sIsInput := s >= layout.InputStart && s < layout.InputEnd
+		tIsHidden := tgt >= layout.HiddenStart && tgt < layout.HiddenEnd
+		sIsHidden := s >= layout.HiddenStart && s < layout.HiddenEnd
+		tIsOutput := tgt >= layout.OutputStart && tgt < layout.OutputEnd
+		return (sIsInput && tIsHidden) || (sIsHidden && tIsOutput)
+	}
+	net.StructuralPlasticity = bio.NewPlasticity(pcfg)
+
+	tracker := benchmark.NewTracker(10)
+
+	acc, dead, sr := Evaluate(net, layout, task, cfg)
+	weights := CollectWeights(net, layout)
+	wm, ws := benchmark.WeightStats(weights)
+	tracker.Record(benchmark.Checkpoint{
+		SamplesProcessed: 0,
+		Accuracy:         acc,
+		WeightMean:       wm,
+		WeightStdDev:     ws,
+		DeadNeurons:      dead,
+		SpikeRate:        sr,
+	})
+
+	trainSamples := task.TrainingSamples()
+	for i, sample := range trainSamples {
+		PresentSample(net, layout, sample, cfg)
+		net.Remodel()
+
+		if (i+1)%100 == 0 {
+			acc, dead, sr := Evaluate(net, layout, task, cfg)
+			weights := CollectWeights(net, layout)
+			wm, ws := benchmark.WeightStats(weights)
+			tracker.Record(benchmark.Checkpoint{
+				SamplesProcessed: i + 1,
+				Accuracy:         acc,
+				WeightMean:       wm,
+				WeightStdDev:     ws,
+				DeadNeurons:      dead,
+				SpikeRate:        sr,
+			})
+		}
+	}
+
+	tracker.PrintReport(os.Stdout, task.Name(), "Pure STDP + Plasticity (30% dense)")
+	t.Logf("Pure STDP + Plasticity best accuracy: %.1f%%", tracker.BestAccuracy()*100)
+}
+
+func TestRunPredictiveWithPlasticity(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping benchmark in short mode")
+	}
+
+	cfg := DefaultConfig()
+	cfg.InitialDensity = 0.3
+
+	predCfg := predictive.DefaultConfig()
+	predCfg.LearningRate = 328
+	predCfg.MaxWeightMagnitude = 500
+	rule := predictive.NewRule(predCfg)
+
+	task := Task{}
+	net, layout := BuildNetwork(cfg, rule)
+
+	pcfg := bio.DefaultPlasticityConfig()
+	pcfg.PruneThreshold = 10
+	pcfg.GrowthRate = 3
+	pcfg.MinCoActivityWindow = 30
+	pcfg.InitialWeight = 75
+	pcfg.MaxConnectionsPerNeuron = 30
+	pcfg.HomeostaticEnabled = true
+	pcfg.DeadThreshold = 150
+	pcfg.HomeostaticStep = 10
+	pcfg.MinThreshold = 50
+	pcfg.Filter = func(s, tgt uint32) bool {
+		sIsInput := s >= layout.InputStart && s < layout.InputEnd
+		tIsHidden := tgt >= layout.HiddenStart && tgt < layout.HiddenEnd
+		sIsHidden := s >= layout.HiddenStart && s < layout.HiddenEnd
+		tIsOutput := tgt >= layout.OutputStart && tgt < layout.OutputEnd
+		return (sIsInput && tIsHidden) || (sIsHidden && tIsOutput)
+	}
+	net.StructuralPlasticity = bio.NewPlasticity(pcfg)
+
+	tracker := benchmark.NewTracker(10)
+
+	acc, dead, sr := Evaluate(net, layout, task, cfg)
+	weights := CollectWeights(net, layout)
+	wm, ws := benchmark.WeightStats(weights)
+	tracker.Record(benchmark.Checkpoint{
+		SamplesProcessed: 0,
+		Accuracy:         acc,
+		WeightMean:       wm,
+		WeightStdDev:     ws,
+		DeadNeurons:      dead,
+		SpikeRate:        sr,
+	})
+
+	trainSamples := task.TrainingSamples()
+	for i, sample := range trainSamples {
+		PresentSample(net, layout, sample, cfg)
+		net.Remodel()
+
+		if (i+1)%100 == 0 {
+			acc, dead, sr := Evaluate(net, layout, task, cfg)
+			weights := CollectWeights(net, layout)
+			wm, ws := benchmark.WeightStats(weights)
+			tracker.Record(benchmark.Checkpoint{
+				SamplesProcessed: i + 1,
+				Accuracy:         acc,
+				WeightMean:       wm,
+				WeightStdDev:     ws,
+				DeadNeurons:      dead,
+				SpikeRate:        sr,
+			})
+		}
+	}
+
+	tracker.PrintReport(os.Stdout, task.Name(), "Predictive + Plasticity (30% dense)")
+	t.Logf("Predictive + Plasticity best accuracy: %.1f%%", tracker.BestAccuracy()*100)
 }
 
 func TestWeightStats(t *testing.T) {

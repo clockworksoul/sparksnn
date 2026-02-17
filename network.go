@@ -46,6 +46,11 @@ type Network struct {
 	// no learning occurs (equivalent to NoOpLearning).
 	LearningRule LearningRule
 
+	// StructuralPlasticity controls connection growth and pruning.
+	// If nil, topology is static. Call Remodel() to trigger
+	// structural changes — it is NOT called automatically per tick.
+	StructuralPlasticity StructuralPlasticity
+
 	// incomingIndex maps each neuron index to its incoming connections.
 	// Built lazily by buildIncomingIndex(). Used by learning rules
 	// that need to evaluate post-synaptic timing across all inputs.
@@ -242,6 +247,21 @@ func (net *Network) TickN(n uint32) int {
 		total += net.Tick()
 	}
 	return total
+}
+
+// Remodel triggers structural plasticity: pruning weak connections,
+// growing new ones, and adjusting neuron excitability. Returns the
+// number of connections pruned and grown. No-op if
+// StructuralPlasticity is nil.
+//
+// Call this periodically — typically once per training sample, not
+// every tick. Structural changes are expensive relative to normal
+// tick processing.
+func (net *Network) Remodel() (pruned, grown int) {
+	if net.StructuralPlasticity == nil {
+		return 0, 0
+	}
+	return net.StructuralPlasticity.Remodel(net, net.Counter)
 }
 
 // Pending returns the number of stimulations queued for the next tick.
