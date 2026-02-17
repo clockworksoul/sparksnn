@@ -53,22 +53,26 @@ Each neuron is a data structure in memory (a struct, not a float in a 2D array).
 ### Data Structure
 
 ```
-BioNeuron {
-    activation_level: int16       // Current activation state (clamped, signed)
-    baseline: int16               // Resting activation (same for all neurons)
-    firing_threshold: int16       // Activation level that triggers propagation
-    last_interaction: uint32      // Counter: when this neuron was last touched
-    refractory_until: uint32      // Counter: cannot fire again until this time
-    connections: []Connection     // Outgoing "dendritic" connections
+Neuron {
+    Activation: int32             // Current activation state (clamped, signed)
+    Baseline: int32               // Resting activation (same for all neurons)
+    Threshold: int32              // Activation level that triggers propagation
+    LastInteraction: uint32       // Counter: when this neuron was last touched
+    DecayRate: uint16             // Fixed-point fraction of 65536 (retention per tick)
+    LastFired: uint32             // Counter: when this neuron last fired (0 = never)
+    Connections: []Connection     // Outgoing synaptic connections
 }
 
 Connection {
-    target: uint32                // Index into neuron array (supports >4B neurons)
-    weight: int16                 // Signed: negative = inhibitory, positive = excitatory
-                                  // Clamped to [-32768, +32767], no overflow
+    Target: uint32                // Index into neuron array (supports >4B neurons)
+    Weight: int32                 // Signed: negative = inhibitory, positive = excitatory
+                                  // Clamped to [MinWeight, MaxWeight], no overflow
+    Eligibility: int32            // STDP eligibility trace (candidate weight change)
+                                  // Consolidated into weight by reward signal
 }
-// Connection = 6 bytes (8 with padding). Pointer alternative would be 10+.
 ```
+
+**Note on refractory period:** Rather than storing a `refractory_until` timestamp per neuron, we use `LastFired + Network.RefractoryPeriod`. Since `Counter` starts at 1, `LastFired == 0` unambiguously means "never fired."
 
 ### Design Decision: Array Indices Over Pointers
 
@@ -84,16 +88,16 @@ Neurons live in a single contiguous array. Connections reference targets by uint
 
 ### Design Decision: Integer Arithmetic
 
-All weights and activation levels use fixed-width signed integers (int16), not floats.
+All weights and activation levels use fixed-width signed integers (int32), not floats. Intermediate arithmetic uses int64 to prevent overflow during computation.
 
 **Rationale:**
-- **Memory:** int16 = 2 bytes vs float64 = 8 bytes. 4x savings per weight. At billions of connections, this is the difference between fitting in RAM and not.
+- **Memory:** int32 = 4 bytes vs float64 = 8 bytes. 2x savings per weight. At billions of connections, this adds up significantly.
 - **Compute:** Integer addition/subtraction/comparison are the cheapest CPU operations. No FPU required, no IEEE 754 overhead. The entire activation cycle is three integer operations: one subtract (decay), one add (weight), one compare (threshold).
 - **Hardware:** This could run on devices that can't touch traditional NNs — edge hardware, microcontrollers, embedded systems.
 - **Biological fidelity:** Ion channels are binary (open/closed). Neurotransmitters release in discrete quanta. The analog character of neural activity emerges from many discrete events summed. Integer math may actually be *more* biologically faithful than floats.
+- **Lesson learned:** We initially used int16, but learning rule weight update deltas rounded to zero at equilibrium (the "quantization dead zone"). int32 provides sufficient resolution for learning while keeping the integer arithmetic advantage.
 
-**Clamping:** All values are clamped to their type range — no overflow/wraparound. A massively inhibited neuron saturates at min, not wraps to max. Same for weights. This mirrors biological saturation (finite receptor density, finite vesicle pools).
-```
+**Clamping:** `ClampAdd(base, delta int32) int32` performs overflow-safe addition using int64 intermediates, clamping results to [MinInt32, MaxInt32]. No wraparound. A massively inhibited neuron saturates at min, not wraps to max.
 
 ### The Activation Cycle
 
@@ -112,33 +116,37 @@ last_interaction = now
 
 The counter-based approach (vs. wall-clock timestamps) makes the computation time-agnostic and deterministic.
 
-#### Step 2: Summation
-Apply incoming weight directly to the current activation level:
+#### Step 2: Accumulate & Summation
+All stimulations arriving in the same tick are **accumulated per neuron** before evaluation (spatial summation at the soma). This ensures results are independent of processing order within a tick.
 
 ```
-activation_level += incoming_weight
+// Phase 1: Sum all pending stimulations per target neuron
+accumulated[target] += stim.weight   // for each pending stim
+
+// Phase 2: Apply accumulated total
+activation_level = ClampAdd(activation_level, accumulated_total)
 ```
 
-This is deliberately simple — no matrix multiply, no activation function applied across a layer. Just addition.
+This is deliberately simple — no matrix multiply, no activation function applied across a layer. Just clamped addition. The accumulate-then-fire model matches biological soma integration where EPSPs and IPSPs are summed before the spike decision.
 
 #### Step 3: Threshold Check & Propagation
 If activation exceeds the firing threshold, fire:
 
 ```
-if activation_level >= firing_threshold AND now >= refractory_until:
-    for conn in connections:
-        stimulate(conn.target, conn.weight)  // Recursive propagation
-    refractory_until = now + refractory_period
+if activation_level >= threshold AND now >= last_fired + refractory_period:
+    last_fired = now
     activation_level = post_fire_reset       // Could reset to baseline or below
+    for conn in connections:
+        queue_for_next_tick(conn.target, conn.weight)  // 1-tick propagation delay
 ```
 
+**Signal propagation uses a 1-tick delay**, not recursive instant propagation. When a neuron fires, its downstream targets are added to a pending queue and processed on the next `Tick()`. This models biological axonal propagation delay and prevents infinite cascading.
+
 #### Step 4: Refractory Period
-After firing, the neuron is temporarily unresponsive. This:
+After firing, the neuron is temporarily unresponsive. Derived from `LastFired + RefractoryPeriod` — no separate field needed. This:
 - Prevents runaway cascading (the biological equivalent of an infinite loop)
 - Acts as a natural rate limiter
 - Creates temporal dynamics (a neuron can't just fire continuously)
-
-In biology, there's both an *absolute* refractory period (cannot fire at all) and a *relative* one (can fire but needs stronger stimulus). Worth considering both.
 
 ## Properties
 
@@ -252,7 +260,7 @@ Based on Saponati & Vinck 2023 (Nature Communications): "Sequence anticipation a
 3. Weights update to reduce prediction error, using both a per-synapse correlation term and a global heterosynaptic term
 4. Eligibility traces provide temporal context (input history)
 
-**Status:** IMPLEMENTED ✅ — `learning/predictive/` package. Integer arithmetic (int16), 13 tests passing. Currently alongside pure STDP and R-STDP. Needs head-to-head benchmarking before choosing a default.
+**Status:** IMPLEMENTED ✅ — `learning/predictive/` package. Integer arithmetic, 13 tests passing. Currently alongside pure STDP, R-STDP, and weight perturbation. Has not yet demonstrated learning on XOR — weight perturbation is currently the only rule to solve it.
 
 #### 🏆 Weight Perturbation — IMPLEMENTED ✅ — FIRST TO LEARN XOR
 
@@ -357,12 +365,27 @@ Research in the neighborhood of this idea, and how we differ:
 | **Liquid State Machines** | Reservoir computing with spiking neurons | LSMs use a fixed random reservoir. We want the topology itself to be learnable. |
 | **Neural ODEs** | Continuous-time neural computation | Different approach to a similar motivation (computation as a continuous process). Much heavier mathematically. |
 
+## Structural Plasticity
+
+The `StructuralPlasticity` interface controls connection topology changes (pruning, growth, homeostasis). Unlike `LearningRule` (which modifies weights every tick), structural changes operate per-sample via `Remodel()`.
+
+**Four phases per remodel:**
+1. **Homeostasis** — rescue dead neurons by lowering their threshold
+2. **Pruning** — remove connections with |weight| below threshold
+3. **Co-activity growth** — add connections between neurons that fire in temporal proximity (causal timing scored)
+4. **Exploratory growth** — random "dendritic exploration" connections TO dead neurons FROM active neurons (solves the chicken-and-egg problem where dead neurons can't co-fire)
+
+**Design:** `InitialDensity` parameter controls starting connectivity (default 1.0 = fully connected). The preferred strategy is sparse-start (~0.25-0.3) with structural plasticity growing connections as needed.
+
+See `research/structural-plasticity.md` for the full design document.
+
 ## Notes
 
 - Matt's background is in molecular & cellular biology (4 years of PhD program), not CS. This design comes from understanding the actual biological substrate, not abstracting from existing ML. The advantage: seeing neural computation as it actually works in nature, not through the lens of how we've historically implemented it in software.
 - The "focus computation where it's needed" property might make this particularly suited for real-time, streaming, or anomaly-detection tasks — problems where most of the input is uninteresting and only occasional signals matter.
 - Even if this never becomes a practical training architecture, it could be valuable as an *inference* architecture — train with matrices, deploy as biomimetic network. The conversion from trained weights to a sparse graph topology is a research question worth pursuing.
-- **The C. elegans connectome demo** is a validation tool, not the product. It proves the engine can handle real sparse topologies and produce coherent behavior. The real test is whether the architecture can *learn* — solve ML benchmarks through local plasticity rules rather than backpropagation.
+- **The C. elegans connectome demo** is a validation tool, not the product. It proves the engine can handle real sparse topologies and produce coherent behavior from real connectome data (302 neurons, ~6,400 connections). Known limitation: all synapses are treated as excitatory — GABAergic inhibition not yet modeled.
+- **XOR is solved** (Feb 17, 2026). Weight perturbation achieves 82-98% success across 2-16 hidden neurons. The network discovers inhibitory connections from all-positive initialization. This proves the architecture can learn non-linearly-separable problems. Next targets: Iris (4 features, 3 classes) and MNIST.
 
 ---
 
