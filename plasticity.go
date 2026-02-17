@@ -46,8 +46,11 @@ type PlasticityConfig struct {
 	// 0 = unlimited.
 	MaxConnectionsPerNeuron int
 
-	// MinCoActivityWindow is the maximum tick gap between two
-	// neurons' last fires for them to be considered "co-active."
+	// MinCoActivityWindow is the maximum tick gap between a
+	// neuron's last fire and the current tick for it to be
+	// considered "recently active." Should be >= the total
+	// presentation + rest period per sample so that neurons
+	// are still considered active when Remodel is called.
 	MinCoActivityWindow uint32
 
 	// InitialWeight is the starting weight for newly grown
@@ -120,7 +123,7 @@ func DefaultPlasticityConfig() PlasticityConfig {
 		// Growth
 		GrowthRate:              5,
 		MaxConnectionsPerNeuron: 50,
-		MinCoActivityWindow:     20,
+		MinCoActivityWindow:     200,
 		InitialWeight:           50,
 		GrowthCandidates:        0, // evaluate all (fine for small networks)
 
@@ -345,17 +348,24 @@ func (p *DefaultPlasticity) allCandidates(net *Network, active []uint32, existin
 			sLastFired := net.Neurons[s].LastFired
 			tLastFired := net.Neurons[t].LastFired
 
-			if sLastFired >= tLastFired {
-				// Anti-causal or simultaneous — skip for v1
-				continue
-			}
+			var score int32
 
-			dt := tLastFired - sLastFired
-			// Score inversely proportional to time gap
-			// Closer timing = higher score
-			score := int32(p.Config.MinCoActivityWindow) - int32(dt)
-			if score <= 0 {
+			if tLastFired == 0 {
+				// Target never fired — valid growth target (exploratory).
+				// Give it a moderate score so co-active pairs rank higher
+				// but dead targets still get connections.
+				score = 1
+			} else if sLastFired >= tLastFired {
+				// Anti-causal or simultaneous — skip
 				continue
+			} else {
+				dt := tLastFired - sLastFired
+				// Score inversely proportional to time gap
+				// Closer timing = higher score
+				score = int32(p.Config.MinCoActivityWindow) - int32(dt)
+				if score <= 0 {
+					continue
+				}
 			}
 
 			candidates = append(candidates, growthCandidate{
@@ -396,14 +406,17 @@ func (p *DefaultPlasticity) sampleCandidates(net *Network, active []uint32, exis
 		sLastFired := net.Neurons[s].LastFired
 		tLastFired := net.Neurons[t].LastFired
 
-		if sLastFired >= tLastFired {
+		var score int32
+		if tLastFired == 0 {
+			score = 1
+		} else if sLastFired >= tLastFired {
 			continue
-		}
-
-		dt := tLastFired - sLastFired
-		score := int32(p.Config.MinCoActivityWindow) - int32(dt)
-		if score <= 0 {
-			continue
+		} else {
+			dt := tLastFired - sLastFired
+			score = int32(p.Config.MinCoActivityWindow) - int32(dt)
+			if score <= 0 {
+				continue
+			}
 		}
 
 		candidates = append(candidates, growthCandidate{
@@ -419,17 +432,24 @@ func (p *DefaultPlasticity) sampleCandidates(net *Network, active []uint32, exis
 // explore grows random incoming connections to dead neurons from
 // recently active neurons. This is "dendritic exploration" — dead
 // neurons reach out randomly to find useful inputs.
+// Uses DeadThreshold as the activity window (wider than
+// MinCoActivityWindow) because we need to find ANY active neuron,
+// not just recently co-active ones.
 func (p *DefaultPlasticity) explore(net *Network, tick uint32) int {
 	cfg := p.Config
 	if cfg.ExploratoryRate <= 0 {
 		return 0
 	}
 
-	// Find active neurons (potential sources)
+	// Find active neurons (potential sources) — use wider window
+	window := cfg.DeadThreshold
+	if cfg.MinCoActivityWindow > window {
+		window = cfg.MinCoActivityWindow
+	}
 	var active []uint32
 	for i := range net.Neurons {
 		n := &net.Neurons[i]
-		if n.LastFired > 0 && tick-n.LastFired <= cfg.MinCoActivityWindow {
+		if n.LastFired > 0 && tick-n.LastFired <= window {
 			active = append(active, uint32(i))
 		}
 	}

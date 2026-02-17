@@ -226,7 +226,7 @@ func TestRunPureSTDPWithPlasticity(t *testing.T) {
 	pcfg := bio.DefaultPlasticityConfig()
 	pcfg.PruneThreshold = 10
 	pcfg.GrowthRate = 3
-	pcfg.MinCoActivityWindow = 30
+	pcfg.MinCoActivityWindow = 200
 	pcfg.InitialWeight = 75
 	pcfg.MaxConnectionsPerNeuron = 30
 	pcfg.HomeostaticEnabled = true
@@ -300,7 +300,7 @@ func TestRunPredictiveWithPlasticity(t *testing.T) {
 	pcfg := bio.DefaultPlasticityConfig()
 	pcfg.PruneThreshold = 10
 	pcfg.GrowthRate = 3
-	pcfg.MinCoActivityWindow = 30
+	pcfg.MinCoActivityWindow = 200
 	pcfg.InitialWeight = 75
 	pcfg.MaxConnectionsPerNeuron = 30
 	pcfg.HomeostaticEnabled = true
