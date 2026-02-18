@@ -17,6 +17,7 @@ func TestIrisRSTDP(t *testing.T) {
 	task := NewTask(42)
 	cfg := DefaultConfig()
 	cfg.PopulationSize = 5
+	cfg.LateralInhibition = -2000 // winner-take-all in output layer
 
 	numTrials := 3
 	var bestTestAcc float64
@@ -36,6 +37,8 @@ func TestIrisRSTDP(t *testing.T) {
 			TauMinus:             10,
 			EligibilityDecayRate: 58982, // ~90% retention
 			MaxWeightMagnitude:   5000,
+			MultiplicativeReward: true,
+			RewardRate:           0.10, // 10% of current weight
 		}
 		rule := rstdp.NewRule(rstdpCfg)
 

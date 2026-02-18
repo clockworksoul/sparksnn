@@ -48,6 +48,23 @@ type Config struct {
 	// MaxWeightMagnitude caps the absolute value of weights after
 	// learning. Prevents runaway weight growth. 0 = use MaxWeight.
 	MaxWeightMagnitude int32
+
+	// MultiplicativeReward switches from additive to multiplicative
+	// reward consolidation. When true, the weight change is a
+	// percentage of the current weight rather than a fixed delta:
+	//
+	//   delta = sign(reward * eligibility) * |weight| * RewardRate
+	//
+	// This makes strong connections resilient (hard to destroy) and
+	// weak connections volatile (easy to reshape). Prevents the
+	// neuron death caused by additive punishment on small weights.
+	MultiplicativeReward bool
+
+	// RewardRate is the fractional weight change per eligible
+	// reward event when MultiplicativeReward is true. Expressed
+	// as a fraction (e.g. 0.10 = 10% of current weight).
+	// Ignored when MultiplicativeReward is false. Default: 0.10.
+	RewardRate float64
 }
 
 // DefaultConfig returns reasonable default R-STDP parameters.
@@ -156,7 +173,37 @@ func (s *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {
 				continue
 			}
 
-			delta := (int64(reward) * int64(conn.Eligibility)) >> 8
+			var delta int64
+
+			if s.Config.MultiplicativeReward {
+				// Multiplicative: delta proportional to current weight.
+				// Direction from sign(reward * eligibility).
+				// Magnitude from |weight| * rate.
+				rate := s.Config.RewardRate
+				if rate <= 0 {
+					rate = 0.10
+				}
+
+				sign := int64(1)
+				if (reward > 0) != (conn.Eligibility > 0) {
+					sign = -1
+				}
+
+				absWeight := int64(conn.Weight)
+				if absWeight < 0 {
+					absWeight = -absWeight
+				}
+				// Minimum magnitude so zero/tiny weights can still move
+				if absWeight < 50 {
+					absWeight = 50
+				}
+
+				delta = sign * int64(float64(absWeight)*rate)
+			} else {
+				// Additive (original behavior)
+				delta = (int64(reward) * int64(conn.Eligibility)) >> 8
+			}
+
 			if delta > int64(bio.MaxWeight) {
 				delta = int64(bio.MaxWeight)
 			}

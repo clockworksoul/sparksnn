@@ -174,6 +174,14 @@ type NetworkConfig struct {
 	// 3+ recommended for better discrimination of similar values.
 	PopulationSize int
 
+	// LateralInhibition adds inhibitory connections between output
+	// neurons, creating winner-take-all competition. When an output
+	// fires, it suppresses the others. This gives learning rules
+	// credit assignment: only the winning output's connections get
+	// causal timing traces.
+	// 0 = no inhibition (default). Typical value: -1000 to -3000.
+	LateralInhibition int32
+
 	// PopulationSigma controls the width of each tuning curve.
 	// Expressed in the [0, 255] feature space. Smaller = sharper
 	// tuning (more selective neurons), larger = broader overlap.
@@ -250,8 +258,6 @@ type Layout struct {
 //	  ↓ fully connected (learnable weights)
 //	3 output neurons (setosa, versicolor, virginica)
 //
-// No lateral inhibition for now — keep it simple and let
-// perturbation do the work. We can add inhibition later if needed.
 func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layout) {
 	numInput := cfg.inputNeuronCount()
 	numHidden := cfg.HiddenSize
@@ -283,6 +289,17 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 		for o := layout.OutputStart; o < layout.OutputEnd; o++ {
 			w := int32(rand.IntN(int(cfg.InitWeightMax))) + 1
 			net.Connect(h, o, w)
+		}
+	}
+
+	// Output ↔ Output (lateral inhibition, fixed weights)
+	if cfg.LateralInhibition != 0 {
+		for o1 := layout.OutputStart; o1 < layout.OutputEnd; o1++ {
+			for o2 := layout.OutputStart; o2 < layout.OutputEnd; o2++ {
+				if o1 != o2 {
+					net.Connect(o1, o2, cfg.LateralInhibition)
+				}
+			}
 		}
 	}
 
