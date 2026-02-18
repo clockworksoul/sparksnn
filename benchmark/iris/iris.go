@@ -163,6 +163,22 @@ type NetworkConfig struct {
 	NoiseProbability   float64
 	NoiseWeight        int32
 	DeterministicInput bool
+
+	// PopulationSize is the number of input neurons per feature.
+	// Each neuron has a Gaussian tuning curve centered at an evenly
+	// spaced point along the [0, 255] feature range. A feature value
+	// activates nearby neurons strongly and distant ones weakly,
+	// giving the network a richer representation of continuous values.
+	//
+	// 1 = original behavior (one neuron per feature, amplitude coding).
+	// 3+ recommended for better discrimination of similar values.
+	PopulationSize int
+
+	// PopulationSigma controls the width of each tuning curve.
+	// Expressed in the [0, 255] feature space. Smaller = sharper
+	// tuning (more selective neurons), larger = broader overlap.
+	// 0 = auto (set to spacing between centers, giving moderate overlap).
+	PopulationSigma float64
 }
 
 // DefaultConfig returns reasonable defaults for Iris.
@@ -179,7 +195,39 @@ func DefaultConfig() NetworkConfig {
 		NoiseProbability:   0.02,
 		NoiseWeight:        100,
 		DeterministicInput: true,
+		PopulationSize:     1,
 	}
+}
+
+// inputNeuronCount returns the total number of input neurons.
+func (cfg NetworkConfig) inputNeuronCount() int {
+	pop := cfg.PopulationSize
+	if pop < 1 {
+		pop = 1
+	}
+	return 4 * pop
+}
+
+// populationSigma returns the effective sigma for tuning curves.
+func (cfg NetworkConfig) populationSigma() float64 {
+	if cfg.PopulationSigma > 0 {
+		return cfg.PopulationSigma
+	}
+	pop := cfg.PopulationSize
+	if pop <= 1 {
+		return 128.0 // doesn't matter for pop=1
+	}
+	// Default: spacing between centers (moderate overlap)
+	return 255.0 / float64(pop-1)
+}
+
+// tuningResponse returns the activation strength [0, 1] for a
+// population neuron centered at `center` given a feature `value`,
+// both in [0, 255]. Uses a Gaussian tuning curve.
+func (cfg NetworkConfig) tuningResponse(center, value float64) float64 {
+	sigma := cfg.populationSigma()
+	d := value - center
+	return math.Exp(-(d * d) / (2 * sigma * sigma))
 }
 
 // Layout describes the neuron index ranges in the network.
@@ -196,7 +244,7 @@ type Layout struct {
 //
 // Topology:
 //
-//	4 input neurons
+//	4*PopulationSize input neurons (Gaussian tuning curves)
 //	  ↓ fully connected (learnable weights)
 //	N hidden neurons
 //	  ↓ fully connected (learnable weights)
@@ -205,7 +253,7 @@ type Layout struct {
 // No lateral inhibition for now — keep it simple and let
 // perturbation do the work. We can add inhibition later if needed.
 func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layout) {
-	numInput := 4
+	numInput := cfg.inputNeuronCount()
 	numHidden := cfg.HiddenSize
 	numOutput := 3
 	total := numInput + numHidden + numOutput
@@ -243,25 +291,64 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 
 // PresentSample encodes a sample and presents it to the network.
 // Returns spike counts for each output neuron.
+//
+// With PopulationSize > 1, each feature is encoded by a population
+// of neurons with Gaussian tuning curves. The stimulation weight
+// for each neuron is proportional to how close the feature value
+// is to that neuron's preferred value (its center).
 func PresentSample(net *bio.Network, layout Layout, sample benchmark.Sample, cfg NetworkConfig) []int {
 	numOutputs := int(layout.OutputEnd - layout.OutputStart)
 	spikeCounts := make([]int, numOutputs)
 
-	for tick := 0; tick < cfg.TicksPerSample; tick++ {
-		// Stimulate input neurons proportional to feature value
-		for i, val := range sample.Inputs {
-			if cfg.DeterministicInput {
-				// Scale stimulation weight by feature value
+	pop := cfg.PopulationSize
+	if pop < 1 {
+		pop = 1
+	}
+
+	// Precompute stimulation weights for all input neurons.
+	// For population coding, neuron (feature*pop + k) is tuned to
+	// center = k * 255 / (pop-1) for that feature.
+	numInputs := 4 * pop
+	inputWeights := make([]int32, numInputs)
+
+	for f := 0; f < 4; f++ {
+		val := float64(sample.Inputs[f])
+		for k := 0; k < pop; k++ {
+			idx := f*pop + k
+
+			if pop == 1 {
+				// Original behavior: amplitude coding
 				if val > 0 {
-					scaledWeight := int32(float64(cfg.InputWeight) * float64(val) / 255.0)
-					if scaledWeight > 0 {
-						net.Stimulate(layout.InputStart+uint32(i), scaledWeight)
-					}
+					inputWeights[idx] = int32(float64(cfg.InputWeight) * val / 255.0)
 				}
 			} else {
-				// Rate coding: fire probability proportional to value
-				if val > 0 && rand.IntN(256) < int(val) {
-					net.Stimulate(layout.InputStart+uint32(i), cfg.InputWeight)
+				// Population coding: Gaussian tuning curve
+				center := 255.0 * float64(k) / float64(pop-1)
+				response := cfg.tuningResponse(center, val)
+				w := int32(float64(cfg.InputWeight) * response)
+				if w > 0 {
+					inputWeights[idx] = w
+				}
+			}
+		}
+	}
+
+	for tick := 0; tick < cfg.TicksPerSample; tick++ {
+		// Stimulate input neurons
+		if cfg.DeterministicInput {
+			for i := 0; i < numInputs; i++ {
+				if inputWeights[i] > 0 {
+					net.Stimulate(layout.InputStart+uint32(i), inputWeights[i])
+				}
+			}
+		} else {
+			// Rate coding: probability proportional to activation
+			for i := 0; i < numInputs; i++ {
+				if inputWeights[i] > 0 {
+					prob := float64(inputWeights[i]) / float64(cfg.InputWeight)
+					if rand.Float64() < prob {
+						net.Stimulate(layout.InputStart+uint32(i), cfg.InputWeight)
+					}
 				}
 			}
 		}
