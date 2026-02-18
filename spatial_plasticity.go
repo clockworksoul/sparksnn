@@ -18,6 +18,23 @@ type SpatialPlasticityConfig struct {
 	// 0 = no distance bias (fall back to base behavior).
 	GrowthSigma float32
 
+	// ForwardBias controls how strongly new connections prefer the
+	// forward (increasing-X) direction. The X coordinate is treated
+	// as network depth: inputs should be at low X, outputs at high X.
+	//
+	// For a candidate connection source→target, the directional
+	// score is: max(targetX - sourceX, epsilon). Forward connections
+	// (positive ΔX) get a score proportional to the depth gap;
+	// backward connections get only epsilon (~0.01), making them
+	// rare but not impossible.
+	//
+	// The score is raised to ForwardBias as a power:
+	//   dirScore^ForwardBias
+	// So ForwardBias=0 disables (all directions equal),
+	// ForwardBias=1 is linear preference, ForwardBias=2 is strong.
+	// Default 0 (disabled).
+	ForwardBias float32
+
 	// Positions is the neuron position slice from the Development
 	// harness. Must be set before use and must outlive training
 	// (not yet finalized).
@@ -83,6 +100,26 @@ func (sp *SpatialPlasticity) distanceScore(a, b uint32) float64 {
 	dist := sp.Config.Positions[a].distance(sp.Config.Positions[b])
 	sigma := sp.Config.GrowthSigma
 	return math.Exp(-float64(dist*dist) / float64(2*sigma*sigma))
+}
+
+// forwardScore returns a directional bias score for a connection
+// from source to target, using the X coordinate as network depth.
+// Forward connections (target.X > source.X) score high; backward
+// connections score near-zero but not zero.
+func (sp *SpatialPlasticity) forwardScore(source, target uint32) float64 {
+	if sp.Config.ForwardBias <= 0 || sp.Config.Positions == nil {
+		return 1.0 // disabled
+	}
+	if int(source) >= len(sp.Config.Positions) || int(target) >= len(sp.Config.Positions) {
+		return 1.0
+	}
+
+	dx := float64(sp.Config.Positions[target].X - sp.Config.Positions[source].X)
+
+	const epsilon = 0.01
+	score := math.Max(dx, epsilon)
+
+	return math.Pow(score, float64(sp.Config.ForwardBias))
 }
 
 type spatialCandidate struct {
@@ -156,7 +193,8 @@ func (sp *SpatialPlasticity) grow(net *Network, tick uint32) int {
 		}
 
 		distScore := sp.distanceScore(s, t)
-		finalScore := timingScore * distScore
+		fwdScore := sp.forwardScore(s, t)
+		finalScore := timingScore * distScore * fwdScore
 
 		if finalScore > 0.001 {
 			candidates = append(candidates, spatialCandidate{
@@ -271,8 +309,8 @@ func (sp *SpatialPlasticity) explore(net *Network, tick uint32) int {
 				continue
 			}
 
-			score := sp.distanceScore(a, idx)
-			if score > 0.01 {
+			score := sp.distanceScore(a, idx) * sp.forwardScore(a, idx)
+			if score > 0.001 {
 				sources = append(sources, sourceCandidate{a, score})
 			}
 		}
