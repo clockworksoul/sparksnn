@@ -33,20 +33,22 @@ func TestIrisSpatialPlasticity(t *testing.T) {
 	for trial := 0; trial < numTrials; trial++ {
 		dev := bio.NewDevelopmentSeeded(bio.DevParams{}, uint64(trial*1000+42))
 
+		// Layers placed left-to-right: X encodes network depth
+		// for forward-biased connection growth.
 		dev.AddLayer(bio.LayerSpec{
 			Name: "input", Role: bio.RoleInput, Size: 4,
 			Placement: bio.PlaceGrid,
-			OriginX: 0, OriginY: 0.4, Width: 1, Height: 0.2,
+			OriginX: 0.0, OriginY: 0.3, Width: 0.1, Height: 0.4,
 		})
 		dev.AddLayer(bio.LayerSpec{
 			Name: "hidden", Role: bio.RoleHidden, Size: 16,
 			Placement: bio.PlaceRandom,
-			OriginX: 0, OriginY: 0, Width: 1, Height: 1,
+			OriginX: 0.3, OriginY: 0, Width: 0.4, Height: 1,
 		})
 		dev.AddLayer(bio.LayerSpec{
 			Name: "output", Role: bio.RoleOutput, Size: 3,
 			Placement: bio.PlaceGrid,
-			OriginX: 0, OriginY: 0.4, Width: 1, Height: 0.2,
+			OriginX: 0.9, OriginY: 0.3, Width: 0.1, Height: 0.4,
 		})
 
 		dev.Build(bio.DevParams{
@@ -58,15 +60,15 @@ func TestIrisSpatialPlasticity(t *testing.T) {
 		hiddenLayer := dev.GetLayer("hidden")
 		outputLayer := dev.GetLayer("output")
 
-		// Wire with narrow sigma for sparse initial connectivity
+		// Wire with sigma scaled to inter-layer distance (~0.4-0.6 apart)
 		dev.Wire(bio.ConnectionRule{
 			FromLayer: "input", ToLayer: "hidden",
-			Sigma: 0.3, PBase: 1.0,
+			Sigma: 0.5, PBase: 1.0,
 			InitWeightMin: 1, InitWeightMax: int32(cfg.InitWeightMax),
 		})
 		dev.Wire(bio.ConnectionRule{
 			FromLayer: "hidden", ToLayer: "output",
-			Sigma: 0.3, PBase: 1.0,
+			Sigma: 0.5, PBase: 1.0,
 			InitWeightMin: 1, InitWeightMax: int32(cfg.InitWeightMax),
 		})
 
@@ -82,21 +84,7 @@ func TestIrisSpatialPlasticity(t *testing.T) {
 		}
 
 		// Set up spatial structural plasticity
-		// Filter: only allow input→hidden and hidden→output
-		filter := func(source, target uint32) bool {
-			// input → hidden
-			if source >= layout.InputStart && source < layout.InputEnd &&
-				target >= layout.HiddenStart && target < layout.HiddenEnd {
-				return true
-			}
-			// hidden → output
-			if source >= layout.HiddenStart && source < layout.HiddenEnd &&
-				target >= layout.OutputStart && target < layout.OutputEnd {
-				return true
-			}
-			return false
-		}
-
+		// No filter — forward bias + distance handle directionality
 		plasticity := bio.NewSpatialPlasticity(bio.SpatialPlasticityConfig{
 			PlasticityConfig: bio.PlasticityConfig{
 				PruneThreshold:          50,  // aggressive pruning
@@ -105,7 +93,6 @@ func TestIrisSpatialPlasticity(t *testing.T) {
 				MinCoActivityWindow:     uint32(cfg.TicksPerSample + cfg.RestTicks),
 				InitialWeight:           100,
 				GrowthCandidates:        0,
-				Filter:                  filter,
 				ExploratoryGrowth:       true,
 				ExploratoryRate:         1,
 				HomeostaticEnabled:      true,
@@ -114,8 +101,9 @@ func TestIrisSpatialPlasticity(t *testing.T) {
 				MinThreshold:            50,
 				MaxThreshold:            500,
 			},
-			GrowthSigma: 0.5,
-			Positions:   dev.Positions,
+			GrowthSigma:  0.5,
+			ForwardBias:  1.0, // linear preference for input→output direction
+			Positions:    dev.Positions,
 		})
 
 		net := dev.Net // don't finalize yet — plasticity needs positions
