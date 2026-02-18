@@ -37,6 +37,10 @@ type NetworkAnalysis struct {
 
 	// Strongest paths: input→hidden→output chains
 	StrongestPaths []Path
+
+	// Classification results
+	ConfusionMatrix [3][3]int // [actual][predicted]
+	Errors          []ClassificationError
 }
 
 // WeightDist summarizes a weight distribution.
@@ -64,6 +68,16 @@ type NeuronProfile struct {
 	// For hidden neurons: which class they fire most for
 	PreferredClass int // -1 if dead or no preference
 	Selectivity    float64 // how much they prefer one class (0=uniform, 1=exclusive)
+}
+
+// ClassificationError records a single misclassified sample.
+type ClassificationError struct {
+	SampleIdx    int
+	TrueLabel    int
+	PredLabel    int
+	Features     []byte   // raw input features [0-255]
+	SpikeCounts  []int    // output neuron spike counts
+	Confidence   float64  // margin between top two outputs
 }
 
 // Path represents an input→hidden→output signal chain.
@@ -216,6 +230,46 @@ func Analyze(net *bio.Network, layout Layout, task *Task, cfg NetworkConfig) *Ne
 		np.Selectivity = 1.0 - entropy/maxEntropy
 	}
 
+	// --- Classification: confusion matrix + error analysis ---
+	// Run on test set with multiple trials per sample for stability
+	testSamples := task.TestSamples()
+
+	for sIdx, sample := range testSamples {
+		aggSpikes := make([]int, numOutput)
+		for trial := 0; trial < EvalTrials; trial++ {
+			spikes := PresentSample(net, layout, sample, cfg)
+			for o := range spikes {
+				aggSpikes[o] += spikes[o]
+			}
+		}
+
+		predicted := Classify(aggSpikes)
+		if predicted < 0 {
+			predicted = 0 // no spikes — default to class 0
+		}
+		a.ConfusionMatrix[sample.Label][predicted]++
+
+		if predicted != sample.Label {
+			// Compute confidence: margin between top two
+			sorted := make([]int, len(aggSpikes))
+			copy(sorted, aggSpikes)
+			sort.Sort(sort.Reverse(sort.IntSlice(sorted)))
+			confidence := 0.0
+			if sorted[0] > 0 {
+				confidence = float64(sorted[0]-sorted[1]) / float64(sorted[0])
+			}
+
+			a.Errors = append(a.Errors, ClassificationError{
+				SampleIdx:   sIdx,
+				TrueLabel:   sample.Label,
+				PredLabel:   predicted,
+				Features:    sample.Inputs,
+				SpikeCounts: aggSpikes,
+				Confidence:  confidence,
+			})
+		}
+	}
+
 	// --- Strongest paths ---
 	a.StrongestPaths = findStrongestPaths(net, layout, 10)
 
@@ -294,6 +348,67 @@ func (a *NetworkAnalysis) PrintReport(w io.Writer) {
 			fmt.Fprintf(w, " %-10.3f", a.ClassProfiles[c][hi])
 		}
 		fmt.Fprintf(w, "\n")
+	}
+
+	fmt.Fprintf(w, "\n=== CONFUSION MATRIX (rows=actual, cols=predicted) ===\n")
+	fmt.Fprintf(w, "%-12s %-10s %-10s %-10s %-8s\n", "", "Setosa", "Versicolor", "Virginica", "Total")
+	for actual := 0; actual < 3; actual++ {
+		rowTotal := 0
+		for p := 0; p < 3; p++ {
+			rowTotal += a.ConfusionMatrix[actual][p]
+		}
+		fmt.Fprintf(w, "%-12s %-10d %-10d %-10d %-8d\n",
+			classNames[actual],
+			a.ConfusionMatrix[actual][0],
+			a.ConfusionMatrix[actual][1],
+			a.ConfusionMatrix[actual][2],
+			rowTotal)
+	}
+
+	// Per-class precision/recall
+	fmt.Fprintf(w, "\n%-12s %-10s %-10s %-10s\n", "Class", "Precision", "Recall", "F1")
+	for c := 0; c < 3; c++ {
+		tp := a.ConfusionMatrix[c][c]
+		// Precision: tp / sum of column c
+		colSum := 0
+		for r := 0; r < 3; r++ {
+			colSum += a.ConfusionMatrix[r][c]
+		}
+		// Recall: tp / sum of row c
+		rowSum := 0
+		for p := 0; p < 3; p++ {
+			rowSum += a.ConfusionMatrix[c][p]
+		}
+		precision := 0.0
+		if colSum > 0 {
+			precision = float64(tp) / float64(colSum)
+		}
+		recall := 0.0
+		if rowSum > 0 {
+			recall = float64(tp) / float64(rowSum)
+		}
+		f1 := 0.0
+		if precision+recall > 0 {
+			f1 = 2 * precision * recall / (precision + recall)
+		}
+		fmt.Fprintf(w, "%-12s %-10.3f %-10.3f %-10.3f\n", classNames[c], precision, recall, f1)
+	}
+
+	if len(a.Errors) > 0 {
+		featureNames := [4]string{"sepal_len", "sepal_wid", "petal_len", "petal_wid"}
+		fmt.Fprintf(w, "\n=== MISCLASSIFIED SAMPLES (%d errors) ===\n", len(a.Errors))
+		for _, e := range a.Errors {
+			fmt.Fprintf(w, "  Sample %d: true=%s predicted=%s spikes=%v confidence=%.2f\n",
+				e.SampleIdx, classNames[e.TrueLabel], classNames[e.PredLabel],
+				e.SpikeCounts, e.Confidence)
+			fmt.Fprintf(w, "    features: ")
+			for f := 0; f < len(e.Features) && f < 4; f++ {
+				fmt.Fprintf(w, "%s=%d ", featureNames[f], e.Features[f])
+			}
+			fmt.Fprintf(w, "\n")
+		}
+	} else {
+		fmt.Fprintf(w, "\n=== NO MISCLASSIFIED SAMPLES ===\n")
 	}
 
 	fmt.Fprintf(w, "\n=== TOP %d STRONGEST PATHS (Input→Hidden→Output) ===\n", len(a.StrongestPaths))
