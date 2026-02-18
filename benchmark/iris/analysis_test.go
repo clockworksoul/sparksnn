@@ -19,7 +19,7 @@ func TestIrisAnalysis(t *testing.T) {
 
 	task := NewTask(42)
 	cfg := DefaultConfig()
-	cfg.PopulationSize = 5 // 5 neurons per feature = 20 input neurons
+	cfg.PopulationSize = 7 // 7 neurons per feature = 28 input neurons
 
 	type networkState struct {
 		net    *bio.Network
