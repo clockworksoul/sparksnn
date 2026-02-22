@@ -80,6 +80,26 @@ type Config struct {
 	// 0 = same as depression strength (1.0).
 	StrengtheningRatio float64
 
+	// --- Multiplicative mode ---
+
+	// Multiplicative switches from fixed deltas to proportional
+	// weight changes. When true, DepressionStrength and
+	// StrengtheningRatio are ignored, and CorrectionRate is used
+	// instead. Weight changes are a fraction of current weight:
+	//
+	//   depression:    weight -= |weight| * CorrectionRate
+	//   strengthening: weight += |weight| * CorrectionRate * StrengtheningRatio
+	//
+	// This makes strong connections resilient and weak connections
+	// volatile. Weights asymptotically approach zero but never
+	// reach it — no need for MinWeightMagnitude.
+	Multiplicative bool
+
+	// CorrectionRate is the fractional weight change per error
+	// when Multiplicative is true. E.g., 0.20 = 20% of current
+	// weight magnitude. Ignored when Multiplicative is false.
+	CorrectionRate float64
+
 	// --- Weight bounds ---
 
 	// MaxWeightMagnitude caps the absolute value of weights.
@@ -206,6 +226,10 @@ func (r *Rule) applyTargetedCorrection(net *bio.Network, correctClass int, spike
 		strengthenDelta = strength
 	}
 
+	// Multiplicative mode: compute deltas as fraction of weight
+	mult := r.Config.Multiplicative
+	rate := r.Config.CorrectionRate
+
 	// Phase 1: Hidden → Output connections
 	// Depress connections to wrong outputs, strengthen to correct output
 	for _, layer := range r.Layers {
@@ -233,10 +257,20 @@ func (r *Rule) applyTargetedCorrection(net *bio.Network, correctClass int, spike
 
 				if conn.Target == correctOutput {
 					// Strengthen connection to correct output
-					conn.Weight = bio.ClampAdd(conn.Weight, strengthenDelta)
+					if mult {
+						delta := r.multDelta(conn.Weight, rate*ratio)
+						conn.Weight = bio.ClampAdd(conn.Weight, delta)
+					} else {
+						conn.Weight = bio.ClampAdd(conn.Weight, strengthenDelta)
+					}
 				} else if spikeCounts[outputIdx] > 0 {
 					// Depress connection to wrong output that fired
-					conn.Weight = bio.ClampAdd(conn.Weight, -strength)
+					if mult {
+						delta := r.multDelta(conn.Weight, rate)
+						conn.Weight = bio.ClampAdd(conn.Weight, -delta)
+					} else {
+						conn.Weight = bio.ClampAdd(conn.Weight, -strength)
+					}
 				}
 
 				r.clampWeight(conn)
@@ -284,6 +318,7 @@ func (r *Rule) applyTargetedCorrection(net *bio.Network, correctClass int, spike
 			if halfStrength == 0 {
 				halfStrength = 1
 			}
+			upstreamRate := rate / 3.0
 
 			// Find neurons that connect TO this hidden neuron
 			for i := range net.Neurons {
@@ -301,7 +336,12 @@ func (r *Rule) applyTargetedCorrection(net *bio.Network, correctClass int, spike
 				for j := range srcNeuron.Connections {
 					conn := &srcNeuron.Connections[j]
 					if conn.Target == hidIdx {
-						conn.Weight = bio.ClampAdd(conn.Weight, -halfStrength)
+						if mult {
+							delta := r.multDelta(conn.Weight, upstreamRate)
+							conn.Weight = bio.ClampAdd(conn.Weight, -delta)
+						} else {
+							conn.Weight = bio.ClampAdd(conn.Weight, -halfStrength)
+						}
 						r.clampWeight(conn)
 						r.floorWeight(conn)
 					}
@@ -309,6 +349,25 @@ func (r *Rule) applyTargetedCorrection(net *bio.Network, correctClass int, spike
 			}
 		}
 	}
+}
+
+// multDelta computes a proportional weight change: |weight| * rate,
+// with a minimum of 1 so that even tiny weights can still move.
+// Always returns a positive value — caller decides the sign.
+func (r *Rule) multDelta(weight int32, rate float64) int32 {
+	absW := int64(weight)
+	if absW < 0 {
+		absW = -absW
+	}
+	// Minimum magnitude so near-zero weights can still grow
+	if absW < 10 {
+		absW = 10
+	}
+	delta := int32(float64(absW) * rate)
+	if delta < 1 {
+		delta = 1
+	}
+	return delta
 }
 
 // floorWeight enforces MinWeightMagnitude bounds.
