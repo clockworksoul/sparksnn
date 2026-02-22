@@ -85,9 +85,10 @@ func TestIrisArbiter(t *testing.T) {
 	arbCfg.AMinus = 0
 	arbCfg.TauPlus = 10
 	arbCfg.TauMinus = 10
+	arbCfg.Multiplicative = false    // multiplicative available but fixed works better here
+	arbCfg.StrengtheningRatio = 3.0  // strengthen correct 3x more than depress wrong
 	arbCfg.DepressionStrength = 20
-	arbCfg.StrengtheningRatio = 3.0 // strengthen correct 3x more than depress wrong
-	arbCfg.ArbiterWindow = 50       // wide window to catch all activity in a sample
+	arbCfg.ArbiterWindow = 50        // wide window to catch all activity in a sample
 	arbCfg.MaxWeightMagnitude = 3000
 	arbCfg.MinWeightMagnitude = 15
 
