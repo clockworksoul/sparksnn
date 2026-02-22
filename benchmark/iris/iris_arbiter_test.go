@@ -36,7 +36,7 @@ func TestIrisArbiter(t *testing.T) {
 	cfg.InitWeightMax = 400
 	cfg.LateralInhibition = -2000
 	cfg.DeterministicInput = true
-	cfg.PopulationSize = 1
+	cfg.PopulationSize = 5
 
 	numInput := cfg.inputNeuronCount()
 	numHidden := cfg.HiddenSize
