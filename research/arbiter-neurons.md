@@ -8,7 +8,9 @@ Matrix-based neural networks use backpropagation to adjust weights during traini
 
 ## The Hypothesis
 
-**Dedicated backward-pointing "arbiter neurons"** form parallel layers alongside forward computation layers, providing error signals that enable training. This is biological backpropagation.
+A spiking neural network **must be wired for training** — it's not optional, it's architectural. Unlike matrix-based networks where backpropagation is a mathematical operation applied externally, independent spiking neurons have no mechanism for a global error signal to reach them. Therefore, the training infrastructure must be *physically built into the network topology*.
+
+**Dedicated backward-pointing "arbiter neurons"** form parallel layers alongside forward computation layers, providing error signals that enable training. This is biological backpropagation — and the brain appears to do exactly this.
 
 ## Why Negative Signals, Not Positive
 
