@@ -6,9 +6,9 @@ import (
 	"os"
 	"testing"
 
-	bio "github.com/clockworksoul/biomimetic-network"
-	"github.com/clockworksoul/biomimetic-network/benchmark"
-	"github.com/clockworksoul/biomimetic-network/learning/arbiter"
+	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn/benchmark"
+	"github.com/clockworksoul/sparksnn/learning/arbiter"
 )
 
 // TestIrisThreePhase tests the three-phase training methodology:

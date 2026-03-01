@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	biomimetic "github.com/clockworksoul/biomimetic-network"
+	biomimetic "github.com/clockworksoul/sparksnn"
 )
 
 // Record represents a single row from the C. elegans connectome

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	biomimetic "github.com/clockworksoul/biomimetic-network"
+	biomimetic "github.com/clockworksoul/sparksnn"
 )
 
 // motorActivity sums the activation of a set of neurons identified by

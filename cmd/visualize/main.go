@@ -17,7 +17,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/clockworksoul/biomimetic-network/celegans"
+	"github.com/clockworksoul/sparksnn/celegans"
 )
 
 // SimData is the complete simulation output embedded in the HTML.

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	bio "github.com/clockworksoul/biomimetic-network"
+	bio "github.com/clockworksoul/sparksnn"
 )
 
 // TestIrisAnalysis trains a network with ad-hoc perturbation, then

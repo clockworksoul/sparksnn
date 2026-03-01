@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	bio "github.com/clockworksoul/biomimetic-network"
-	"github.com/clockworksoul/biomimetic-network/learning/rstdp"
+	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn/learning/rstdp"
 )
 
 // TestIrisRSTDP tests reward-modulated STDP on Iris with population

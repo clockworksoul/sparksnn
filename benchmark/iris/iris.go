@@ -18,8 +18,8 @@ import (
 	"strconv"
 	"strings"
 
-	bio "github.com/clockworksoul/biomimetic-network"
-	"github.com/clockworksoul/biomimetic-network/benchmark"
+	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn/benchmark"
 )
 
 // Task implements the Iris benchmark.

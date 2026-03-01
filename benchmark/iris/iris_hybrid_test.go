@@ -5,9 +5,9 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"github.com/clockworksoul/biomimetic-network/learning/hybrid"
-	"github.com/clockworksoul/biomimetic-network/learning/perturbation"
-	"github.com/clockworksoul/biomimetic-network/learning/rstdp"
+	"github.com/clockworksoul/sparksnn/learning/hybrid"
+	"github.com/clockworksoul/sparksnn/learning/perturbation"
+	"github.com/clockworksoul/sparksnn/learning/rstdp"
 )
 
 // TestIrisHybridAdHoc uses ad-hoc perturbation (full-dataset eval)

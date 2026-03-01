@@ -5,8 +5,8 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	bio "github.com/clockworksoul/biomimetic-network"
-	"github.com/clockworksoul/biomimetic-network/learning/surrogate"
+	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn/learning/surrogate"
 )
 
 // TestIrisSurrogate tests surrogate gradient training on Iris.

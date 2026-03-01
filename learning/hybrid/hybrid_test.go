@@ -3,7 +3,7 @@ package hybrid
 import (
 	"testing"
 
-	bio "github.com/clockworksoul/biomimetic-network"
+	bio "github.com/clockworksoul/sparksnn"
 )
 
 // TestHybridImplementsLearningRule verifies the interface is satisfied.

@@ -3,7 +3,7 @@ package arbiter
 import (
 	"testing"
 
-	bio "github.com/clockworksoul/biomimetic-network"
+	bio "github.com/clockworksoul/sparksnn"
 )
 
 // TestStdpWindow verifies the linear STDP window approximation.

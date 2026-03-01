@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/clockworksoul/biomimetic-network/benchmark"
+	"github.com/clockworksoul/sparksnn/benchmark"
 )
 
 // Task implements the MNIST benchmark.
