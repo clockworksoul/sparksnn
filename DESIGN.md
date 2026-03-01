@@ -1,391 +1,227 @@
-# Biomimetic Neural Architecture
+# SparkSNN — Design Document
 
-*A graph-based neural computation framework that replaces dense matrix multiplication with sparse, event-driven signal propagation — inspired by biological neural systems, built for machine learning.*
+*An energy-efficient spiking neural network framework using integer arithmetic, sparse connectivity, and event-driven computation.*
 
-**Author:** Matt Titmus & Dross
-**Status:** Living document / Thought experiment
+**Authors:** Matt Titmus & Dross
+**Status:** Living document
 **Started:** 2026-02-15
+**Last updated:** 2026-03-01
 
 ---
 
 ## What This Is
 
-This is an alternative compute architecture for neural networks. Instead of dense matrix multiplication, computation happens through sparse, event-driven message passing between simple units arranged in a graph.
+SparkSNN is an alternative compute architecture for neural networks. Instead of dense floating-point matrix multiplication, computation happens through sparse, event-driven signal propagation between integer LIF neurons arranged in a graph.
 
-**The goal is not to simulate biology.** The goal is to replace `Y = WX + b` with something that scales with *activity* rather than *network size* — and to do it using ideas stolen from the only system that demonstrably solves intelligence at 20 watts.
-
-We borrow from neuroscience when it solves a computational problem. We ignore it when it doesn't. This is engineering, not biology.
-
-### What This Is Not
-
-- **Not a spiking neural network simulator.** We don't model ion channels, membrane potentials, or neurotransmitter dynamics. Tools like NEST and Brian2 serve computational neuroscience. We're building a machine learning architecture.
-- **Not a neuroscience research project.** We don't care whether our model is biologically *accurate*. We care whether it's computationally *useful*.
-- **Not an incremental optimization.** Sparse matrix libraries and pruning techniques make traditional NNs more efficient. We're proposing a different computational primitive entirely — replacing matrix multiplication with graph-based signal propagation.
+**The goal:** Replace `Y = WX + b` with something that scales with *activity* rather than *network size* — and do it using ideas from the only system that demonstrably solves intelligence at 20 watts.
 
 ### Design Philosophy
 
-1. **Biology is a parts catalog, not a blueprint.** Take what works (sparse activation, event-driven compute, local learning rules, temporal dynamics). Leave what doesn't (exact biophysics, evolutionary baggage, biological constraints that don't apply to silicon).
-2. **Justify every biological feature computationally.** If we include something because "the brain does it," we need to articulate *why* it helps computation. Refractory periods aren't here for biological fidelity — they're here because they prevent runaway cascading and create useful temporal dynamics.
-3. **Matrix multiplication is the benchmark.** Every design decision must be evaluated against the question: "Does this let us do something matrices can't, or do it more efficiently?" If neither, cut it.
-4. **Practicality over elegance.** If a hybrid approach works (e.g., a conventional readout layer on top of biomimetic internals), that's fine. Purity is not a goal.
-
-## Motivation
-
-Modern neural networks rely on dense matrix multiplication — every forward pass computes across the entire weight matrix regardless of how much of that computation is relevant to the input. This works, but it's brute force.
-
-The fundamental problem is that **computation scales with network size, not with input complexity.** A 10-billion-parameter model does the same amount of work whether you ask it "what's 2+2" or "explain quantum gravity." Every weight participates in every forward pass. Zero times a weight is still a multiply.
-
-Biological neural systems solved this problem differently:
-
-- **Sparse:** The vast majority of neurons are not firing at any given moment (~1-5% active)
-- **Event-driven:** Computation only happens when a neuron is stimulated
-- **Locally connected:** Most neurons connect to a small neighborhood, not the entire network
-- **Energy-efficient:** ~20 watts for the human brain vs. megawatts for large model training
-
-These aren't incidental properties of biology — they're engineering solutions to the same scaling problem we face. The brain can't afford O(n²) per thought either.
-
-**Core question:** Can we build a neural computation framework where cost scales with *activity* (the number of neurons that actually contribute to a given computation) rather than *network size* (the total number of parameters)?
-
-## The Biomimetic Neuron
-
-Each neuron is a data structure in memory (a struct, not a float in a 2D array). It is heavier per-unit than a matrix element, but the hypothesis is that sparse activation compensates.
-
-### Data Structure
-
-```
-Neuron {
-    Activation: int32             // Current activation state (clamped, signed)
-    Baseline: int32               // Resting activation (same for all neurons)
-    Threshold: int32              // Activation level that triggers propagation
-    LastInteraction: uint32       // Counter: when this neuron was last touched
-    DecayRate: uint16             // Fixed-point fraction of 65536 (retention per tick)
-    LastFired: uint32             // Counter: when this neuron last fired (0 = never)
-    Connections: []Connection     // Outgoing synaptic connections
-}
-
-Connection {
-    Target: uint32                // Index into neuron array (supports >4B neurons)
-    Weight: int32                 // Signed: negative = inhibitory, positive = excitatory
-                                  // Clamped to [MinWeight, MaxWeight], no overflow
-    Eligibility: int32            // STDP eligibility trace (candidate weight change)
-                                  // Consolidated into weight by reward signal
-}
-```
-
-**Note on refractory period:** Rather than storing a `refractory_until` timestamp per neuron, we use `LastFired + Network.RefractoryPeriod`. Since `Counter` starts at 1, `LastFired == 0` unambiguously means "never fired."
-
-### Design Decision: Array Indices Over Pointers
-
-Neurons live in a single contiguous array. Connections reference targets by uint32 index, not pointer.
-
-**Rationale:**
-- **Memory:** uint32 = 4 bytes vs pointer = 8 bytes on 64-bit systems. With thousands of connections per neuron, this halves the connection overhead.
-- **Cache locality:** Contiguous array = cache-friendly sequential access. Pointer-chasing = cache misses.
-- **Serialization:** Array + indices can be dumped/loaded trivially. Pointer graphs require reconstruction.
-- **Parallelism:** Indices are easy to partition across cores or machines. Pointers are process-local.
-- **Capacity:** uint32 supports >4 billion neuron indices — more than sufficient.
-
-### Design Decision: Integer Arithmetic
-
-All weights and activation levels use fixed-width signed integers (int32), not floats. Intermediate arithmetic uses int64 to prevent overflow during computation.
-
-**Rationale:**
-- **Memory:** int32 = 4 bytes vs float64 = 8 bytes. 2x savings per weight. At billions of connections, this adds up significantly.
-- **Compute:** Integer addition/subtraction/comparison are the cheapest CPU operations. No FPU required, no IEEE 754 overhead. The entire activation cycle is three integer operations: one subtract (decay), one add (weight), one compare (threshold).
-- **Hardware:** This could run on devices that can't touch traditional NNs — edge hardware, microcontrollers, embedded systems.
-- **Biological fidelity:** Ion channels are binary (open/closed). Neurotransmitters release in discrete quanta. The analog character of neural activity emerges from many discrete events summed. Integer math may actually be *more* biologically faithful than floats.
-- **Lesson learned:** We initially used int16, but learning rule weight update deltas rounded to zero at equilibrium (the "quantization dead zone"). int32 provides sufficient resolution for learning while keeping the integer arithmetic advantage.
-
-**Clamping:** `ClampAdd(base, delta int32) int32` performs overflow-safe addition using int64 intermediates, clamping results to [MinInt32, MaxInt32]. No wraparound. A massively inhibited neuron saturates at min, not wraps to max.
-
-### The Activation Cycle
-
-When a neuron receives input (is "poked" by an upstream neuron firing):
-
-#### Step 1: Decay
-Calculate how far activation has drifted back toward baseline since `last_interaction`.
-
-```
-elapsed = now - last_interaction
-activation_level = baseline + (activation_level - baseline) * decay_function(elapsed)
-last_interaction = now
-```
-
-**Key insight:** Idle neurons cost *zero* compute. There is no global clock tick updating millions of quiet neurons. Decay is calculated lazily, only when the neuron is next stimulated. This is what makes the architecture event-driven rather than clock-driven.
-
-The counter-based approach (vs. wall-clock timestamps) makes the computation time-agnostic and deterministic.
-
-#### Step 2: Accumulate & Summation
-All stimulations arriving in the same tick are **accumulated per neuron** before evaluation (spatial summation at the soma). This ensures results are independent of processing order within a tick.
-
-```
-// Phase 1: Sum all pending stimulations per target neuron
-accumulated[target] += stim.weight   // for each pending stim
-
-// Phase 2: Apply accumulated total
-activation_level = ClampAdd(activation_level, accumulated_total)
-```
-
-This is deliberately simple — no matrix multiply, no activation function applied across a layer. Just clamped addition. The accumulate-then-fire model matches biological soma integration where EPSPs and IPSPs are summed before the spike decision.
-
-#### Step 3: Threshold Check & Propagation
-If activation exceeds the firing threshold, fire:
-
-```
-if activation_level >= threshold AND now >= last_fired + refractory_period:
-    last_fired = now
-    activation_level = post_fire_reset       // Could reset to baseline or below
-    for conn in connections:
-        queue_for_next_tick(conn.target, conn.weight)  // 1-tick propagation delay
-```
-
-**Signal propagation uses a 1-tick delay**, not recursive instant propagation. When a neuron fires, its downstream targets are added to a pending queue and processed on the next `Tick()`. This models biological axonal propagation delay and prevents infinite cascading.
-
-#### Step 4: Refractory Period
-After firing, the neuron is temporarily unresponsive. Derived from `LastFired + RefractoryPeriod` — no separate field needed. This:
-- Prevents runaway cascading (the biological equivalent of an infinite loop)
-- Acts as a natural rate limiter
-- Creates temporal dynamics (a neuron can't just fire continuously)
-
-## Properties
-
-### How This Compares
-
-| Property | Biology | This Model | Traditional NN |
-|---|---|---|---|
-| Sparse activation | ✅ ~1-5% active | ✅ Only active paths compute | ❌ Full matrix every pass |
-| Event-driven | ✅ | ✅ Lazy decay | ❌ Clock-driven |
-| Excitatory/inhibitory | ✅ | ✅ Signed weights | ⚠️ Implicit in matrix |
-| Refractory period | ✅ | ✅ | ❌ |
-| Temporal dynamics | ✅ | ✅ Via decay + counters | ❌ Static per pass |
-| Energy proportional to activity | ✅ | ✅ (hypothetically) | ❌ |
-
-### What's Different from Standard NNs
-
-- **No layers.** The topology is a graph, not a stack. Signals propagate through the graph freely.
-- **No global forward pass.** Computation is local and cascading.
-- **Time is a first-class citizen.** The decay function means the *same* input can produce different outputs depending on recent history.
-- **Computation cost scales with activity, not network size.** A 10-billion-neuron network where 0.1% is active costs the same as a 10-million-neuron fully-active network.
-
-## The Energy Argument
-
-This may be the strongest practical case for the architecture. AI energy consumption is becoming a crisis:
-
-- Training a frontier model costs millions in electricity
-- Inference at scale is worse — it runs 24/7 and grows with users
-- A single H100 GPU: ~700W. A human brain: ~20W. The gap is orders of magnitude.
-
-This model's efficiency gains are structural, not incremental:
-
-| | Traditional NN | Biomimetic |
-|---|---|---|
-| Idle neurons | Still computed (zero × weight = still a multiply) | Zero cost — not touched at all |
-| Weak signals | Computed, contribute near-zero | Naturally filtered by threshold — stop propagating |
-| Cost scales with... | Network size (every pass, full matrix) | Activity (only active signal paths) |
-| Theoretical floor | O(n²) per layer per pass | O(k) where k = active neurons << n |
-
-The counterargument — "GPUs are optimized for matrices so this would be slower in practice" — is a hardware argument, not an algorithmic one. If the architecture is sound, hardware follows. That's literally why neuromorphic chips exist.
-
-## Open Questions
-
-### 1. Learning Rule ⭐ THE hard problem
-How do connections form, strengthen, weaken, and prune? This could occupy an entire PhD.
-
-#### Primary Candidate: Reward-Modulated STDP (R-STDP)
-
-After surveying the neuromorphic literature (see `research/neuromorphic-landscape.md`), **R-STDP is our primary learning rule candidate.** It bridges the gap between local plasticity and goal-directed behavior:
-
-**How it works (three-phase):**
-
-1. **STDP creates eligibility traces.** When pre-synaptic neuron fires before post-synaptic (causal timing), the synapse is *marked* as a candidate for strengthening. Reverse timing marks it for weakening. These are just candidates — no weight change yet.
-
-```
-If pre fires before post (Δt > 0):  eligibility += A+ × exp(-Δt / τ+)
-If post fires before pre (Δt < 0):  eligibility -= A- × exp(Δt / τ-)
-```
-
-2. **Eligibility traces decay over time.** If no reward signal arrives, the candidate changes fade away. This is a temporal credit window — "did this firing pattern lead to something good within the next N ticks?"
-
-3. **Global reward/punishment signal consolidates changes.** When a reward signal arrives (analogous to dopamine in biology), all outstanding eligibility traces are consolidated into actual weight changes:
-
-```
-ΔW = reward_signal × eligibility_trace
-```
-
-Positive reward + positive eligibility = strengthen. Positive reward + negative eligibility = weaken. Negative reward inverts both.
-
-**Why R-STDP fits our architecture:**
-- **Local:** Only needs spike timing (which we track via `last_interaction` and `refractory_until`) + a global scalar reward signal
-- **Temporal:** Naturally uses the timing dynamics built into our neuron model
-- **Integer-friendly:** Eligibility traces and decay can be computed with the same lazy-decay approach we use for activation
-- **Hardware-proven:** Loihi 2 implements three-factor learning rules (STDP + reward modulation) natively
-- **Solves credit assignment:** The reward signal provides direction; STDP provides local structure
-
-**Implementation note:** The learning rule is implemented behind the `LearningRule` interface, allowing algorithms to be swapped at runtime. Four implementations exist:
-- **`learning/stdp`** — Pure STDP (unsupervised Hebbian). Weight changes applied directly from spike timing. No reward signal needed.
-- **`learning/rstdp`** — Reward-modulated STDP (three-factor). Spike timing creates eligibility traces; reward consolidates them into weight changes.
-- **`learning/predictive`** — Predictive learning (Saponati & Vinck 2023). Self-supervised; STDP-like behavior emerges from prediction error minimization.
-- **`learning/perturbation`** — Weight perturbation (gradient-free). Perturbs one weight per batch, keeps changes that improve performance. **First rule to solve XOR** (82-98% success rate across 2-16 hidden neurons). Provides per-connection credit assignment without backpropagation.
-
-#### Other Biological Mechanisms (for future consideration)
-- **Hebbian plasticity** ("fire together, wire together") — basic association, subsumed by STDP
-- **Long-term potentiation/depression (LTP/LTD)** — memory consolidation, threshold-based permanence
-- **Pruning during sleep** — the brain cleans up connections offline. Could we do periodic pruning passes?
-- **Neurogenesis & dendritic growth** — new connections forming over time
-- **Myelination** — changing signal propagation speed (connection "priority")
-
-#### The Credit Assignment Problem
-Backprop solves credit assignment by propagating error gradients backward through layers. Our architecture has no layers. R-STDP addresses this differently: STDP handles the *where* (which synapses were active in the right pattern) and the reward signal handles the *what* (was the outcome good or bad). The eligibility trace window handles the *when* (how recently did the activity occur relative to the reward).
-
-This is less precise than backprop — it won't find the mathematically optimal gradient. But it's also more robust, more biologically plausible, and naturally supports continual learning without catastrophic forgetting.
-
-#### 🔬 Predictive Learning Rule — IMPLEMENTED ✅
-Based on Saponati & Vinck 2023 (Nature Communications): "Sequence anticipation and spike-timing-dependent plasticity emerge from a predictive learning rule."
-
-**The key insight:** STDP is not the learning rule — it's a *side effect*. When neurons optimize a simpler objective (predict their own future inputs), STDP timing curves emerge automatically. The predictive rule is more fundamental than STDP.
-
-**Implementation:** `PredictiveRule` in `learning/predictive/`. Implements the `LearningRule` interface and can be swapped with STDP or R-STDP at runtime.
-
-**Advantages over R-STDP:**
-- **Fully self-supervised** — no external reward signal needed
-- **STDP emerges automatically** — not manually programmed
-- **Self-stabilizing** — heterosynaptic competition prevents runaway weights
-- **Sequence learning** — neurons naturally learn to anticipate temporal patterns
-- **Principled foundation** — derived from an optimization objective, not heuristics
-
-**How it works:**
-1. Each neuron predicts its next input: `prediction = activation × weight`
-2. Prediction error drives learning: `error = actual_input - prediction`
-3. Weights update to reduce prediction error, using both a per-synapse correlation term and a global heterosynaptic term
-4. Eligibility traces provide temporal context (input history)
-
-**Status:** IMPLEMENTED ✅ — `learning/predictive/` package. Integer arithmetic, 13 tests passing. Currently alongside pure STDP, R-STDP, and weight perturbation. Has not yet demonstrated learning on XOR — weight perturbation is currently the only rule to solve it.
-
-#### 🏆 Weight Perturbation — IMPLEMENTED ✅ — FIRST TO LEARN XOR
-
-**The breakthrough:** Weight perturbation is the first learning rule to solve XOR in our architecture (82-98% success rate across 2-16 hidden neurons).
-
-**How it works:**
-1. Randomly perturb one synaptic weight
-2. Present a full batch of training patterns
-3. Compare batch reward to previous batch
-4. If performance improved, keep the perturbation; if worse, revert
-5. Adaptive perturbation size doubles after prolonged stagnation
-
-**Why it works when STDP/R-STDP don't:** Per-connection credit assignment. STDP-based rules update all active connections the same way (no differentiation). Weight perturbation tests each connection individually, directly measuring its contribution to network performance.
-
-**Biological plausibility:** Related to "synaptic sampling" — experimental observations of stochastic synaptic weight fluctuations in cortex that stabilize at configurations correlated with reward (Kappel et al., 2015).
-
-**Implementation:** `learning/perturbation/` package. Operates through `OnReward` hook with configurable `BatchSize`. No spike timing used — `OnSpikePropagation`, `OnPostFire`, and `Maintain` are no-ops.
-
-**Key results (Feb 17, 2026):**
-- Hidden=2: 82% success (ad-hoc) / 17% (formal LearningRule)
-- Hidden=4: 98% / 40%
-- Hidden=8: 96% / 57%
-- Hidden=16: 98% / not yet tested with formal rule
-- More hidden neurons = higher success rate (more solutions in weight space)
-- Gap between ad-hoc and formal rule due to running neuron state effects; optimizable
-
-**Critical discovery:** The network discovers INHIBITORY input→hidden connections from all-positive initialization. The learned weights match the theoretical XOR circuit (A AND NOT B / NOT A AND B pattern).
-
-#### Accumulate-Then-Fire — ENGINE FIX ✅
-
-**Bug found Feb 17, 2026:** The `Tick()` method was applying pending stimulations sequentially — each stimulation immediately checked the fire threshold. This meant a strong excitatory signal could trigger firing BEFORE an inhibitory signal arriving in the same tick could cancel it. Results were order-dependent.
-
-**Fix:** All same-tick stimulations are now summed per neuron (spatial summation at the soma) BEFORE evaluating the fire threshold. This matches biological signal integration and makes results deterministic regardless of stimulation processing order.
-
-**Impact:** This was a prerequisite for XOR learning. Without it, the `(1,1) → 0` case was impossible because the excitatory input always fired the hidden neuron before the inhibitory input arrived.
-
-See `research/predictive-learning-rule.md` for the full analysis.
-
-### 2. Information Output ⭐ Hard but tractable
-Input is straightforward — anything can be linearized into stimulation patterns. Output is harder.
-
-**Biological approaches:**
-- **Population coding** — read from a group of output neurons, interpret the pattern of activity (how the motor cortex works)
-- **Rate coding** — firing frequency encodes the value (simpler, well-understood)
-- **Attractor states** — network settles into a stable pattern that *is* the answer (Hopfield network style)
-
-**Hybrid/pragmatic approaches:**
-- **Readout layer** — a thin conventional layer on top that translates biomimetic activity into usable output. Inelegant but practical.
-- **Temporal coding** — information encoded in *when* neurons fire, not just *whether* they fire
-
-Matt plans to take inspiration from both the natural world and existing computational solutions — hybrid approach.
-
-### 3. Representational Equivalence ⭐ Needs empirical evidence
-**Can this learn representations equivalent to matrix transforms?**
-
-**Theoretical argument (yes):** The universal approximation theorem says any continuous function can be approximated by a sufficiently wide network of simple units with nonlinear activation. Biomimetic neurons *are* nonlinear (threshold + fire = step function). Theoretical equivalence seems assured.
-
-**Practical argument (unknown):** Theoretical possibility ≠ learnable in practice. The real question is whether the learning rule (#1) can find good representations in reasonable time.
-
-**Pragmatic argument:** Full equivalence may not be necessary. If this architecture excels at specific problem classes — temporal/streaming data, anomaly detection, low-power edge inference — that's a viable niche independent of general-purpose equivalence.
-
-### 4. Implementation Challenges
-- **Memory overhead:** Each neuron is much larger than a matrix element. But if only 1% are active...
-- **Hardware mismatch:** GPUs are absurdly optimized for matrix math. This architecture wants something more like a message-passing system. Neuromorphic chips (Intel Loihi, IBM TrueNorth) are closer.
-- **Parallelism:** The cascading nature could be tricky to parallelize. But neurons with no dependencies *can* fire simultaneously.
-- **Convergence:** How do we know when the network has "finished" processing an input? (Biology doesn't have this problem because it never stops.)
-
-### 5. Connection Topology
-- How many connections per neuron? (Biological neurons: 1,000-10,000)
-- Random initial connectivity? Structured? Small-world?
-- Do connections grow/prune over time?
-
-## Architectural Insight: Modularity
-
-Reference: *The Prehistory of the Mind* by Steven Mithen (1996)
-
-Mithen argues the human mind evolved as a series of specialized, semi-independent cognitive modules — social intelligence, natural history intelligence, technical intelligence, language — each shaped by different evolutionary pressures. These modules only became interconnected later ("cognitive fluidity"), and it was the *cross-talk between modules* that produced uniquely human capabilities like art, religion, and science.
-
-**Implication for this architecture:** The network topology shouldn't be one homogeneous mesh. It should be **clustered** — semi-independent modules with dense internal connections but sparse cross-connections. This mirrors both evolutionary neuroscience and Mithen's archaeological evidence.
-
-Benefits:
-- **Learning becomes more tractable** — each module can specialize with simpler local learning rules
-- **Inter-module connections can evolve separately** — potentially a different learning rule for cross-module links
-- **Emergent capabilities** — novel behavior arises from cross-module interaction, not from any single module
-- **Fault tolerance** — damage to one module doesn't destroy the whole network
-- **Biological fidelity** — the brain really is organized this way (visual cortex, motor cortex, Broca's area, etc.)
-
-This is the "duct-taped evolutionary solution" — messy, modular, and more powerful than any clean unified design.
-
-## Related Work
-
-Research in the neighborhood of this idea, and how we differ:
-
-| Approach | Relationship | Key Difference |
-|---|---|---|
-| **Spiking Neural Networks (SNNs)** | Closest existing paradigm | SNNs often aim for biological accuracy. We aim for ML utility. We use simpler dynamics (no differential equations) and prioritize learnability over biophysical realism. |
-| **Neuromorphic hardware** (Intel Loihi, IBM TrueNorth, BrainScaleS) | Potential deployment target | These chips are designed for SNNs. Our architecture could map well to them, but we design software-first — it should run efficiently on commodity hardware too. |
-| **Numenta / HTM** | Similar motivation, different architecture | HTM uses sparse distributed representations and cortical column theory. We use simpler neuron models and focus on graph-based signal propagation rather than columnar structure. |
-| **Sparse matrix / pruning techniques** | Optimization of existing paradigm | These make matrix multiplication more efficient. We replace it entirely with a different computational primitive. |
-| **Graph Neural Networks (GNNs)** | Structural similarity | GNNs pass messages on graphs but still use matrix ops at each node and require synchronous forward passes. Our propagation is asynchronous and event-driven. |
-| **Leaky Integrate-and-Fire (LIF)** | Our neuron model is a simplified LIF | We use lazy decay instead of continuous integration — no ODE solving, just a calculation at interaction time. |
-| **Liquid State Machines** | Reservoir computing with spiking neurons | LSMs use a fixed random reservoir. We want the topology itself to be learnable. |
-| **Neural ODEs** | Continuous-time neural computation | Different approach to a similar motivation (computation as a continuous process). Much heavier mathematically. |
-
-## Structural Plasticity
-
-The `StructuralPlasticity` interface controls connection topology changes (pruning, growth, homeostasis). Unlike `LearningRule` (which modifies weights every tick), structural changes operate per-sample via `Remodel()`.
-
-**Four phases per remodel:**
-1. **Homeostasis** — rescue dead neurons by lowering their threshold
-2. **Pruning** — remove connections with |weight| below threshold
-3. **Co-activity growth** — add connections between neurons that fire in temporal proximity (causal timing scored)
-4. **Exploratory growth** — random "dendritic exploration" connections TO dead neurons FROM active neurons (solves the chicken-and-egg problem where dead neurons can't co-fire)
-
-**Design:** `InitialDensity` parameter controls starting connectivity (default 1.0 = fully connected). The preferred strategy is sparse-start (~0.25-0.3) with structural plasticity growing connections as needed.
-
-See `research/structural-plasticity.md` for the full design document.
-
-## Notes
-
-- Matt's background is in molecular & cellular biology (4 years of PhD program), not CS. This design comes from understanding the actual biological substrate, not abstracting from existing ML. The advantage: seeing neural computation as it actually works in nature, not through the lens of how we've historically implemented it in software.
-- The "focus computation where it's needed" property might make this particularly suited for real-time, streaming, or anomaly-detection tasks — problems where most of the input is uninteresting and only occasional signals matter.
-- Even if this never becomes a practical training architecture, it could be valuable as an *inference* architecture — train with matrices, deploy as biomimetic network. The conversion from trained weights to a sparse graph topology is a research question worth pursuing.
-- **The C. elegans connectome demo** is a validation tool, not the product. It proves the engine can handle real sparse topologies and produce coherent behavior from real connectome data (302 neurons, ~6,400 connections). Known limitation: all synapses are treated as excitatory — GABAergic inhibition not yet modeled.
-- **XOR is solved** (Feb 17, 2026). Weight perturbation achieves 82-98% success across 2-16 hidden neurons. The network discovers inhibitory connections from all-positive initialization. This proves the architecture can learn non-linearly-separable problems. Next targets: Iris (4 features, 3 classes) and MNIST.
+1. **Biology is a parts catalog, not a blueprint.** Take what works (sparse activation, event-driven compute, mixed excitatory/inhibitory connectivity). Leave what doesn't (exact biophysics, evolutionary baggage).
+2. **Justify every biological feature computationally.** Refractory periods aren't here for biological fidelity — they're here to prevent runaway cascading and create temporal dynamics.
+3. **Matrix multiplication is the benchmark.** Every decision must answer: "Does this do something matrices can't, or do it more efficiently?"
+4. **Practicality over elegance.** Hybrid approaches are fine. Purity is not a goal.
+
+### What This Is Not
+
+- **Not a spiking neural network simulator.** We don't model ion channels or neurotransmitter dynamics. NEST and Brian2 serve neuroscience. We're building an ML architecture.
+- **Not an incremental optimization.** Sparse matrix libraries make traditional NNs more efficient. We're proposing a different computational primitive — graph-based signal propagation.
 
 ---
 
-*This document is a living design. We'll iterate on it as we dig deeper into the literature and work through the hard questions.*
+## Architecture
+
+### Integer LIF Neurons
+
+Each neuron is a struct in a contiguous array. All arithmetic is integer.
+
+```
+Neuron {
+    Activation: int32         // Current membrane potential
+    Baseline: int32           // Resting activation
+    Threshold: int32          // Firing threshold
+    DecayRate: uint16         // Fixed-point fraction of 65536
+    LastFired: uint32         // Counter tick of last spike (0 = never)
+    LastInteraction: uint32   // Counter tick of last input
+    Connections: []Connection // Outgoing synapses
+}
+
+Connection {
+    Target: uint32            // Index into neuron array
+    Weight: int32             // Signed: negative = inhibitory, positive = excitatory
+    Eligibility: int32        // STDP eligibility trace
+}
+```
+
+### Design Decisions
+
+**Array indices over pointers.** Neurons live in a contiguous array; connections reference targets by uint32 index. This gives cache locality, trivial serialization, and easy partitioning across cores.
+
+**Integer arithmetic.** Int32 weights and activations, no floats at runtime. Integer add is ~0.1 pJ vs FP32 multiply at ~3.7 pJ (Horowitz 2014). The entire activation cycle is: one multiply + shift (decay), one add (accumulate), one compare (threshold).
+
+**Lazy decay.** Idle neurons cost zero compute. Decay is calculated on-demand when a neuron next receives input, not on a global clock tick. This is what makes the architecture event-driven.
+
+**Accumulate-then-fire.** All stimulations arriving in the same tick are summed per neuron before evaluation (spatial summation). Results are deterministic regardless of processing order.
+
+### The Activation Cycle
+
+When a neuron receives input:
+
+1. **Decay:** `activation = baseline + (activation - baseline) * decay_function(elapsed)`
+2. **Accumulate:** Sum all pending stimulations → `activation += total`
+3. **Threshold check:** If `activation >= threshold` and refractory period has elapsed → **fire**
+4. **Fire:** Reset membrane, queue weight additions to all connected targets for next tick
+
+**Signal propagation uses a 1-tick delay.** Downstream targets are processed on the next `Tick()`. This prevents infinite cascading and creates useful temporal dynamics.
+
+### Sparse Event-Driven Computation
+
+| Property | Traditional NN | SparkSNN |
+|:---|:---|:---|
+| Idle neurons | Still computed (0 × weight = still a multiply) | Zero cost — not touched |
+| Cost scales with | Network size (full matrix every pass) | Activity (only active paths) |
+| Theoretical complexity | O(n²) per layer | O(k) where k = active neurons ≪ n |
+
+A 10-billion-neuron network where 0.1% is active costs the same as a 10-million-neuron fully-active network.
+
+---
+
+## Training: Dual-Domain Approach
+
+### The Problem
+
+Integer arithmetic is not differentiable, and the spike function (Heaviside step) has zero gradient almost everywhere. Biological learning rules (STDP, reward modulation, arbiter neurons) can solve simple tasks but hit a ceiling at multi-layer credit assignment.
+
+### The Solution: Surrogate Gradient Training
+
+We maintain two parallel representations:
+
+1. **Float64 domain (training):** Shadow weights, continuous membrane simulation, surrogate gradient BPTT, Adam optimizer
+2. **Int32 domain (inference):** Quantized weights, integer LIF dynamics, event-driven propagation
+
+A configurable **weight scale factor** α converts between domains: `w_int32 = round(α × w_float64)`
+
+**Key components:**
+- **Fast sigmoid surrogate** (slope=25): Smooth approximation of the Heaviside derivative during backward pass
+- **Spike count cross-entropy loss:** Total spikes per output neuron as logits
+- **Adam optimizer** with standard hyperparameters
+- **Quantization parity:** Verified zero prediction degradation between float64 and int32 inference on Iris (0/30 mismatches)
+
+See `research/surrogate-gradient-training.md` for the full design.
+
+### Results
+
+| Benchmark | Architecture | Accuracy | Training Time |
+|:---|:---|---:|:---|
+| Iris | 40 → 20 → 3 | **100%** | 1.9s (CPU) |
+| MNIST | 784 → 256 → 10 (20% sparse) | **95.8%** | ~13 min (CPU) |
+| MNIST (deep) | 784 → 256 → 128 → 10 | 93.7% | ~19 min (CPU) |
+
+### Energy Efficiency
+
+Per-inference comparison (MNIST, Horowitz 2014 at 45nm):
+
+| | Dense MLP (FP32) | SparkSNN (int32) | Ratio |
+|:---|---:|---:|:---|
+| Energy | 935 nJ | 107 nJ | **8.7× more efficient** |
+
+The SNN performs more total operations, but they're overwhelmingly cheap int32 additions (0.1 pJ) rather than expensive FP32 MACs (4.6 pJ). Combined with spike-driven sparsity, this yields nearly an order of magnitude energy reduction. See the [paper draft](../research/integer-snn-paper-draft.md) for the full analysis.
+
+### The Road from Biology to Backpropagation
+
+Before arriving at surrogate gradients, we implemented and tested over ten variants of biologically-inspired learning rules:
+
+| Approach | Best Result | Why It Failed |
+|:---|---:|:---|
+| Pure STDP | Chance | No credit assignment |
+| Reward-modulated STDP | Chance | Global reward too diffuse |
+| Weight perturbation | 98% (XOR only) | Too slow for larger problems |
+| Arbiter neurons | 100% (Iris) | No hidden-layer credit assignment |
+| Three-phase training (10 variants) | 86.7% (Iris) | Every improvement converged toward reimplementing backprop |
+
+**Key finding:** Each improvement to our heuristic approach moved it closer to computing exact gradients. Output-targeted correction → output layer gradient. Causal constraints → pre × post activation. Layer-by-layer propagation → backpropagation. By the tenth iteration, we had reimplemented backprop with noisy heuristics. The 86.7% ceiling was the cost of that noise.
+
+**Lesson:** Borrow biology for architecture, use mathematics for training.
+
+---
+
+## Learning Rules
+
+The `LearningRule` interface allows runtime-swappable learning algorithms:
+
+| Package | Rule | Type | Status |
+|:---|:---|:---|:---|
+| `learning/surrogate` | Surrogate gradient BPTT | Gradient-based | ✅ **Primary** — 100% Iris, 95.8% MNIST |
+| `learning/arbiter` | Arbiter neurons + three-phase | Heuristic | ✅ 96.7-100% Iris |
+| `learning/stdp` | Pure STDP | Hebbian | ✅ Implemented, chance-level on tasks |
+| `learning/rstdp` | Reward-modulated STDP | Three-factor | ✅ Implemented |
+| `learning/predictive` | Predictive rule (Saponati & Vinck 2023) | Self-supervised | ✅ Implemented |
+| `learning/perturbation` | Weight perturbation | Gradient-free | ✅ First to solve XOR |
+
+---
+
+## Initialization
+
+**Critical finding:** Sparse mixed-sign initialization is essential for spiking network learning.
+
+With full connectivity and uniformly positive weights, all hidden neurons receive identical input and fire in unison (spike rate 20/20). This eliminates representational diversity and makes all learning rules ineffective.
+
+**Our approach:**
+- Input → Hidden: 20-50% connection probability, weights uniform in [-w_max, +w_max]
+- Hidden → Output: 50-70% connection probability, weights uniform in [-w_max, +w_max]
+
+Each neuron gets a unique receptive field from the start. **Diversity is a prerequisite for learning, not an outcome of it.**
+
+---
+
+## Future Work
+
+### Near-term
+- [ ] Larger benchmarks: Fashion-MNIST, CIFAR-10, temporal datasets (SHD, SSC)
+- [ ] Deeper architectures with gradient management (residual connections, normalization)
+- [ ] Learning rate scheduling, weight decay
+- [ ] Int32 inference verification on MNIST (done for Iris)
+- [ ] Adaptive weight scale factor (auto-calculate from max fan-in)
+
+### The Vision: Continuous Activity and Persistent State
+
+Everything above is feedforward classification — present a sample, run N timesteps, read output. The architecture was designed for something bigger.
+
+The long-term goal is a network that maintains **ongoing dynamics** — not processing discrete samples, but continuously active, with memory and state emerging from persistent activation patterns rather than external storage. This means:
+
+- **No "forward pass."** The network is always running. Input modulates ongoing activity, not initiates it.
+- **Memory from dynamics.** Attractor states, recurrent loops, and sustained activity patterns encode information without a separate memory mechanism.
+- **Temporal processing.** The decay function and refractory periods give the architecture inherent temporal dynamics. Signals that arrive at different times produce different results.
+- **Structural plasticity.** Connections grow and prune based on activity (see `research/structural-plasticity.md`). The topology itself becomes learned.
+
+This is the hard problem. It's also the interesting one.
+
+### Modularity
+
+The network topology should be **clustered** — semi-independent modules with dense internal connections but sparse cross-connections (inspired by Mithen 1996, cortical column theory, and Hawkins). Benefits:
+- Each module specializes with simpler local learning
+- Novel capabilities emerge from cross-module interaction
+- Fault tolerance — damage to one module doesn't destroy the network
+
+---
+
+## Related Work
+
+| Approach | Relationship | Key Difference |
+|:---|:---|:---|
+| **Spiking Neural Networks** | Closest paradigm | We prioritize ML utility over biological accuracy. Simpler dynamics, integer math. |
+| **Neuromorphic hardware** (Loihi, TrueNorth) | Deployment target | We design software-first for commodity hardware, but map naturally to neuromorphic chips. |
+| **Numenta / HTM** | Similar motivation | Different architecture. We use simpler neuron models and graph-based propagation. |
+| **Graph Neural Networks** | Structural similarity | GNNs still use matrix ops at each node with synchronous passes. We're asynchronous and event-driven. |
+| **snntorch / SpyTorch** | Training methodology | They train SNNs in PyTorch. We implement everything in Go with native integer inference. |
+
+## References
+
+- Horowitz, M. (2014). Computing's energy problem (and what we can do about it). *IEEE ISSCC*.
+- Neftci, E. O., et al. (2019). Surrogate gradient learning in spiking neural networks. *IEEE Signal Processing Magazine*.
+- Saponati, M. & Vinck, M. (2023). Sequence anticipation and STDP emerge from a predictive learning rule. *Nature Communications*.
+- Mithen, S. (1996). *The Prehistory of the Mind.* Thames & Hudson.
+
+---
+
+*This document is a living design, updated as the project evolves.*
