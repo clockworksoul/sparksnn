@@ -297,3 +297,70 @@ func (t *Trainer) TrainSample(inputValues []float64, correctClass int) float64 {
 
 	return loss
 }
+
+// Predict runs a forward pass without training and returns the
+// predicted class (highest spike count). Uses float64 simulation.
+func (t *Trainer) Predict(inputValues []float64) int {
+	cfg := t.Config
+	numNeurons := len(t.Net.Neurons)
+	numSteps := cfg.NumSteps
+	numOutputs := int(cfg.Layers[len(cfg.Layers)-1].End - cfg.Layers[len(cfg.Layers)-1].Start)
+	outputStart := cfg.Layers[len(cfg.Layers)-1].Start
+
+	mem := make([]float64, numNeurons)
+	spikes := make([]float64, numNeurons) // current step spikes
+	spikeCounts := make([]float64, numOutputs)
+
+	for step := 0; step < numSteps; step++ {
+		current := make([]float64, numNeurons)
+
+		// External input
+		inputLayer := cfg.Layers[0]
+		for i := inputLayer.Start; i < inputLayer.End; i++ {
+			idx := int(i - inputLayer.Start)
+			if idx < len(inputValues) {
+				current[i] += inputValues[idx] * cfg.InputWeight
+			}
+		}
+
+		// Synaptic input from previous step
+		if step > 0 {
+			for src := 0; src < numNeurons; src++ {
+				if spikes[src] == 0 {
+					continue
+				}
+				for j, tgt := range t.connections[src] {
+					current[tgt] += t.weights[src][j]
+				}
+			}
+		}
+
+		// Reset spikes for this step
+		for i := range spikes {
+			spikes[i] = 0
+		}
+
+		// Update membrane and check spikes
+		for i := 0; i < numNeurons; i++ {
+			mem[i] = cfg.Beta*mem[i] + current[i]
+			if mem[i] >= cfg.Threshold {
+				spikes[i] = 1.0
+				if uint32(i) >= outputStart && uint32(i) < outputStart+uint32(numOutputs) {
+					spikeCounts[uint32(i)-outputStart] += 1.0
+				}
+				mem[i] -= cfg.Threshold
+			}
+		}
+	}
+
+	// Return class with highest spike count
+	bestClass := 0
+	bestCount := spikeCounts[0]
+	for i := 1; i < numOutputs; i++ {
+		if spikeCounts[i] > bestCount {
+			bestCount = spikeCounts[i]
+			bestClass = i
+		}
+	}
+	return bestClass
+}
