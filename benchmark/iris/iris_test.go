@@ -5,7 +5,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"github.com/clockworksoul/biomimetic-network/learning/perturbation"
+	"github.com/clockworksoul/sparksnn/learning/perturbation"
 )
 
 // TestIrisDataLoad verifies the dataset loads and splits correctly.

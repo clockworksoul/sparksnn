@@ -5,7 +5,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	bio "github.com/clockworksoul/biomimetic-network"
+	bio "github.com/clockworksoul/sparksnn"
 )
 
 // TestIrisSpatialWiring uses the Development harness to create

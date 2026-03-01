@@ -1,3 +1,3 @@
-module github.com/clockworksoul/biomimetic-network
+module github.com/clockworksoul/sparksnn
 
 go 1.26.0

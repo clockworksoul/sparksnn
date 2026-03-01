@@ -22,9 +22,9 @@
 package hybrid
 
 import (
-	bio "github.com/clockworksoul/biomimetic-network"
-	"github.com/clockworksoul/biomimetic-network/learning/perturbation"
-	"github.com/clockworksoul/biomimetic-network/learning/rstdp"
+	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn/learning/perturbation"
+	"github.com/clockworksoul/sparksnn/learning/rstdp"
 )
 
 // Config holds configuration for the hybrid learning rule.

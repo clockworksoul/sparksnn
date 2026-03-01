@@ -3,7 +3,7 @@ package stdp
 import (
 	"testing"
 
-	bio "github.com/clockworksoul/biomimetic-network"
+	bio "github.com/clockworksoul/sparksnn"
 )
 
 func TestRuleSatisfiesInterface(t *testing.T) {

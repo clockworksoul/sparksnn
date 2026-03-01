@@ -12,7 +12,7 @@
 package predictive
 
 import (
-	bio "github.com/clockworksoul/biomimetic-network"
+	bio "github.com/clockworksoul/sparksnn"
 )
 
 // Config holds tunable parameters for the predictive learning rule.

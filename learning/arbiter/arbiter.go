@@ -19,7 +19,7 @@
 package arbiter
 
 import (
-	bio "github.com/clockworksoul/biomimetic-network"
+	bio "github.com/clockworksoul/sparksnn"
 )
 
 // LayerSpec describes a single layer in the network and its

@@ -3,7 +3,7 @@ package celegans
 import (
 	"testing"
 
-	biomimetic "github.com/clockworksoul/biomimetic-network"
+	biomimetic "github.com/clockworksoul/sparksnn"
 )
 
 const testDataPath = "../data/celegans_connectome.csv"

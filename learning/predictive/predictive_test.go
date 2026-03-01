@@ -3,8 +3,8 @@ package predictive
 import (
 	"testing"
 
-	bio "github.com/clockworksoul/biomimetic-network"
-	"github.com/clockworksoul/biomimetic-network/learning/rstdp"
+	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn/learning/rstdp"
 )
 
 func TestRuleSatisfiesInterface(t *testing.T) {

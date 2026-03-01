@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/clockworksoul/biomimetic-network/benchmark"
-	"github.com/clockworksoul/biomimetic-network/benchmark/xor"
-	"github.com/clockworksoul/biomimetic-network/learning/predictive"
-	"github.com/clockworksoul/biomimetic-network/learning/rstdp"
-	"github.com/clockworksoul/biomimetic-network/learning/stdp"
+	"github.com/clockworksoul/sparksnn/benchmark"
+	"github.com/clockworksoul/sparksnn/benchmark/xor"
+	"github.com/clockworksoul/sparksnn/learning/predictive"
+	"github.com/clockworksoul/sparksnn/learning/rstdp"
+	"github.com/clockworksoul/sparksnn/learning/stdp"
 
-	bio "github.com/clockworksoul/biomimetic-network"
+	bio "github.com/clockworksoul/sparksnn"
 )
 
 func main() {

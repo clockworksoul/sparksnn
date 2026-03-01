@@ -3,7 +3,7 @@ package surrogate
 import (
 	"math"
 
-	bio "github.com/clockworksoul/biomimetic-network"
+	bio "github.com/clockworksoul/sparksnn"
 )
 
 // LayerSpec describes a contiguous range of neuron indices in a layer.

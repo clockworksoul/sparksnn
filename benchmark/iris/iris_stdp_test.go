@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	bio "github.com/clockworksoul/biomimetic-network"
-	"github.com/clockworksoul/biomimetic-network/learning/stdp"
+	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn/learning/stdp"
 )
 
 // TestIrisSTDP tests pure (unsupervised) STDP on Iris with

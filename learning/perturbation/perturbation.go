@@ -25,7 +25,7 @@ package perturbation
 import (
 	"math/rand/v2"
 
-	bio "github.com/clockworksoul/biomimetic-network"
+	bio "github.com/clockworksoul/sparksnn"
 )
 
 // Config holds tunable parameters for weight perturbation learning.

@@ -4,7 +4,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	bio "github.com/clockworksoul/biomimetic-network"
+	bio "github.com/clockworksoul/sparksnn"
 )
 
 // TestIrisSpatialPlasticity starts with a sparse, spatially-wired

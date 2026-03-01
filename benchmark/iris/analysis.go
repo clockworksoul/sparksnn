@@ -6,7 +6,7 @@ import (
 	"math"
 	"sort"
 
-	bio "github.com/clockworksoul/biomimetic-network"
+	bio "github.com/clockworksoul/sparksnn"
 )
 
 // NetworkAnalysis captures the full structural and functional state

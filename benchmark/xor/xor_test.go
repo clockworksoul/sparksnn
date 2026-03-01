@@ -4,11 +4,11 @@ import (
 	"os"
 	"testing"
 
-	bio "github.com/clockworksoul/biomimetic-network"
-	"github.com/clockworksoul/biomimetic-network/benchmark"
-	"github.com/clockworksoul/biomimetic-network/learning/predictive"
-	"github.com/clockworksoul/biomimetic-network/learning/rstdp"
-	"github.com/clockworksoul/biomimetic-network/learning/stdp"
+	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn/benchmark"
+	"github.com/clockworksoul/sparksnn/learning/predictive"
+	"github.com/clockworksoul/sparksnn/learning/rstdp"
+	"github.com/clockworksoul/sparksnn/learning/stdp"
 )
 
 func TestTaskInterface(t *testing.T) {

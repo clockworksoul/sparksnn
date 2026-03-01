@@ -11,8 +11,8 @@ import (
 	"math/rand/v2"
 	"os"
 
-	bio "github.com/clockworksoul/biomimetic-network"
-	"github.com/clockworksoul/biomimetic-network/benchmark"
+	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn/benchmark"
 )
 
 // Task implements the XOR benchmark.

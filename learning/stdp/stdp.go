@@ -16,7 +16,7 @@ package stdp
 import (
 	"math"
 
-	bio "github.com/clockworksoul/biomimetic-network"
+	bio "github.com/clockworksoul/sparksnn"
 )
 
 // Config holds tunable parameters for the pure STDP learning rule.

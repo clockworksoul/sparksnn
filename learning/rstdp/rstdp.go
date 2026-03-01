@@ -19,7 +19,7 @@ package rstdp
 import (
 	"math"
 
-	bio "github.com/clockworksoul/biomimetic-network"
+	bio "github.com/clockworksoul/sparksnn"
 )
 
 // Config holds tunable parameters for the R-STDP learning rule.
