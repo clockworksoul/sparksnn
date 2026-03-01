@@ -35,7 +35,7 @@ func TestMNISTSurrogate(t *testing.T) {
 	inputWeight := 0.5                    // scaled by pixel value
 	initWeightMax := 0.3
 
-	intScale := float64(1 << 14) // 16384 — smaller scale for MNIST range
+	intScale := float64(1 << 20) // 1048576 — more precision, still safe from overflow
 
 	intThreshold := int32(threshold * intScale)
 	net := bio.NewNetwork(uint32(total), 0, intThreshold, decayRate, 3)

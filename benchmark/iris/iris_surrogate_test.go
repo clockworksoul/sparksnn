@@ -201,4 +201,78 @@ func TestIrisSurrogate(t *testing.T) {
 	} else {
 		t.Errorf("Best accuracy %.1f%% — surrogate gradient training not working", bestAcc*100)
 	}
+
+	// ===== INT32 vs FLOAT64 INFERENCE COMPARISON =====
+	// Run every test sample through both paths and compare predictions.
+	t.Log("")
+	t.Log("=== Int32 vs Float64 Inference Comparison ===")
+
+	float64Correct := 0
+	int32Correct := 0
+	mismatches := 0
+
+	for si, sample := range testSamples {
+		inputValues := encodeInput(sample.Inputs)
+
+		// Float64 path (trainer.Predict)
+		f64Pred := trainer.Predict(inputValues)
+
+		// Int32 path (bio.Network)
+		net.ResetActivation()
+		spikeCounts := make([]int, numOutput)
+		intInputWeight := inputWeight * intScale
+		for step := 0; step < cfg.NumSteps; step++ {
+			for i := 0; i < numInput; i++ {
+				if inputValues[i] > 0.01 {
+					w := int32(inputValues[i] * intInputWeight)
+					if w > 0 {
+						net.Stimulate(inputStart+uint32(i), w)
+					}
+				}
+			}
+			net.Tick()
+			for o := outputStart; o < outputEnd; o++ {
+				if net.Neurons[o].LastFired == net.Counter {
+					spikeCounts[o-outputStart]++
+				}
+			}
+		}
+		i32Pred := -1
+		bestCount := 0
+		for i, c := range spikeCounts {
+			if c > bestCount {
+				bestCount = c
+				i32Pred = i
+			}
+		}
+
+		if f64Pred == sample.Label {
+			float64Correct++
+		}
+		if i32Pred == sample.Label {
+			int32Correct++
+		}
+		if f64Pred != i32Pred {
+			mismatches++
+			t.Logf("  Sample %d: float64=%d, int32=%d, label=%d, spikes=%v",
+				si, f64Pred, i32Pred, sample.Label, spikeCounts)
+		}
+	}
+
+	f64Acc := float64(float64Correct) / float64(len(testSamples)) * 100
+	i32Acc := float64(int32Correct) / float64(len(testSamples)) * 100
+
+	t.Logf("Float64 accuracy: %.1f%% (%d/%d)", f64Acc, float64Correct, len(testSamples))
+	t.Logf("Int32   accuracy: %.1f%% (%d/%d)", i32Acc, int32Correct, len(testSamples))
+	t.Logf("Mismatches: %d/%d samples", mismatches, len(testSamples))
+
+	if mismatches == 0 {
+		t.Log("✓ Perfect match — int32 inference is identical to float64!")
+	} else if float64(mismatches)/float64(len(testSamples)) < 0.05 {
+		t.Logf("✓ %d mismatches (%.1f%%) — minor quantization differences",
+			mismatches, float64(mismatches)/float64(len(testSamples))*100)
+	} else {
+		t.Errorf("✗ %d mismatches (%.1f%%) — significant quantization degradation",
+			mismatches, float64(mismatches)/float64(len(testSamples))*100)
+	}
 }
