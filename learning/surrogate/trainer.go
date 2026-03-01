@@ -55,6 +55,21 @@ type Trainer struct {
 
 	// weightScale converts float64 weights to int32: int32 = float64 * weightScale
 	weightScale float64
+
+	// Adam optimizer state
+	useAdam bool
+	adam    adamState
+}
+
+// adamState holds per-weight Adam optimizer moments.
+type adamState struct {
+	m [][]float64 // first moment (mean of gradients)
+	v [][]float64 // second moment (mean of squared gradients)
+	t int         // timestep counter
+
+	beta1   float64
+	beta2   float64
+	epsilon float64
 }
 
 // NewTrainer creates a trainer for the given network.
@@ -85,6 +100,23 @@ func NewTrainer(net *bio.Network, cfg Config, weightScale float64) *Trainer {
 	}
 
 	return t
+}
+
+// EnableAdam activates the Adam optimizer with standard defaults
+// (beta1=0.9, beta2=0.999, epsilon=1e-8).
+func (t *Trainer) EnableAdam() {
+	t.useAdam = true
+	t.adam = adamState{
+		m:       make([][]float64, len(t.weights)),
+		v:       make([][]float64, len(t.weights)),
+		beta1:   0.9,
+		beta2:   0.999,
+		epsilon: 1e-8,
+	}
+	for i := range t.weights {
+		t.adam.m[i] = make([]float64, len(t.weights[i]))
+		t.adam.v[i] = make([]float64, len(t.weights[i]))
+	}
 }
 
 // WeightScale is the factor used to convert between float64 training
@@ -281,11 +313,29 @@ func (t *Trainer) TrainSample(inputValues []float64, correctClass int) float64 {
 	// (input neurons don't have incoming learned connections,
 	// so nothing to do here for weights)
 
-	// ===== WEIGHT UPDATE (SGD) =====
+	// ===== WEIGHT UPDATE =====
 	lr := cfg.LearningRate
-	for src := range t.weights {
-		for j := range t.weights[src] {
-			t.weights[src][j] -= lr * dLdW[src][j]
+	if t.useAdam {
+		t.adam.t++
+		tt := float64(t.adam.t)
+		b1, b2, eps := t.adam.beta1, t.adam.beta2, t.adam.epsilon
+		bc1 := 1.0 - math.Pow(b1, tt) // bias correction
+		bc2 := 1.0 - math.Pow(b2, tt)
+		for src := range t.weights {
+			for j := range t.weights[src] {
+				g := dLdW[src][j]
+				t.adam.m[src][j] = b1*t.adam.m[src][j] + (1-b1)*g
+				t.adam.v[src][j] = b2*t.adam.v[src][j] + (1-b2)*g*g
+				mHat := t.adam.m[src][j] / bc1
+				vHat := t.adam.v[src][j] / bc2
+				t.weights[src][j] -= lr * mHat / (math.Sqrt(vHat) + eps)
+			}
+		}
+	} else {
+		for src := range t.weights {
+			for j := range t.weights[src] {
+				t.weights[src][j] -= lr * dLdW[src][j]
+			}
 		}
 	}
 

@@ -15,7 +15,7 @@ import (
 // No population coding — raw pixel values as input.
 // Sparse connectivity to keep it tractable.
 func TestMNISTSurrogate(t *testing.T) {
-	task, err := NewTask(10000, 1000) // subset for speed: 10k train, 1k test
+	task, err := NewTask(0, 0) // full dataset: 60k train, 10k test
 	if err != nil {
 		t.Fatalf("Failed to load MNIST: %v", err)
 	}
@@ -106,11 +106,12 @@ func TestMNISTSurrogate(t *testing.T) {
 	}
 
 	trainer := surrogate.NewTrainer(net, cfg, intScale)
+	trainer.EnableAdam()
 
 	trainSamples := task.TrainingSamples()
 	testSamples := task.TestSamples()
 
-	epochs := 30
+	epochs := 15
 	bestAcc := 0.0
 
 	// Precompute normalized input encoding
