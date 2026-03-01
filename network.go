@@ -285,6 +285,22 @@ func (net *Network) Remodel() (pruned, grown int) {
 	return net.StructuralPlasticity.Remodel(net, net.Counter)
 }
 
+// ResetActivation resets all neurons in the network to their baseline
+// activation level and clears any pending stimulations. This is a hard
+// reset of dynamic state — weights and connection topology are preserved.
+//
+// Use between training samples to prevent activation from one sample
+// bleeding into the next (the "compounding excitation" problem).
+func (net *Network) ResetActivation() {
+	for i := range net.Neurons {
+		net.Neurons[i].Activation = net.Neurons[i].Baseline
+		net.Neurons[i].LastInteraction = net.Counter
+	}
+	// Clear any pending stimulations from the previous sample
+	net.pending = net.pending[:0]
+	net.nextPending = net.nextPending[:0]
+}
+
 // Pending returns the number of stimulations queued for the next tick.
 func (net *Network) Pending() int {
 	return len(net.nextPending)
