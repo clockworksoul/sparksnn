@@ -1,4 +1,4 @@
-package biomimetic
+package sparksnn
 
 // PendingStimulation represents a signal scheduled to arrive at a
 // neuron on the next tick. Created when a neuron fires — its
