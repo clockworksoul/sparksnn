@@ -224,4 +224,10 @@ The network topology should be **clustered** — semi-independent modules with d
 
 ---
 
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).
+
+---
+
 *This document is a living design, updated as the project evolves.*

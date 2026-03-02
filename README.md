@@ -102,4 +102,4 @@ The SNN performs *more* total operations, but they're overwhelmingly cheap int32
 
 ## License
 
-All rights reserved.
+Apache License 2.0. See [LICENSE](LICENSE) for details.
