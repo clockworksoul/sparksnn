@@ -6,7 +6,7 @@
 
 ## 🔴 Next Up
 
-- [ ] **Paper submission** — Draft at `research/integer-snn-paper-draft.md` (workspace). Needs review pass, figures, and venue selection.
+- [ ] **Paper submission** — Draft in progress. Needs review pass, figures, and venue selection.
 - [ ] **Fashion-MNIST benchmark** — Harder than MNIST, same input shape. Good next test of generalization.
 - [ ] **Adaptive weight scale** — Auto-calculate intScale from max fan-in × max weight to avoid overflow while maximizing precision.
 - [ ] **Int32 inference verification on MNIST** — Done for Iris (0 mismatches). Should verify on MNIST too.
@@ -29,7 +29,7 @@
 
 - [ ] **Persistent state** — Networks that maintain ongoing dynamics, not just process discrete samples.
 - [ ] **Recurrent connections** — Enable temporal pattern recognition and working memory.
-- [ ] **Structural plasticity** — Dynamic connection growth/pruning (design doc: `research/sparksnn/structural-plasticity.md` in workspace).
+- [ ] **Structural plasticity** — Dynamic connection growth/pruning.
 - [ ] **Attractor states** — Memory emerging from stable activation patterns.
 - [ ] **Spontaneous firing** — Pacemaker neurons that fire without input.
 - [ ] **Neuromodulation** — Global signals (dopamine-like) that modulate entire regions.
