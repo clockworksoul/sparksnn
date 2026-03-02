@@ -348,6 +348,138 @@ func (t *Trainer) TrainSample(inputValues []float64, correctClass int) float64 {
 	return loss
 }
 
+// ActivityStats holds per-timestep activity measurements from a forward pass.
+type ActivityStats struct {
+	// ActivePerStep[t] is the number of neurons that were active at timestep t
+	// (received input or fired).
+	ActivePerStep []int
+
+	// SpikedPerStep[t] is the number of neurons that fired at timestep t.
+	SpikedPerStep []int
+
+	// TotalNeurons is the total neuron count.
+	TotalNeurons int
+
+	// NumSteps is the number of timesteps.
+	NumSteps int
+}
+
+// MeanActivityRate returns the average fraction of neurons active per timestep.
+func (s *ActivityStats) MeanActivityRate() float64 {
+	if s.NumSteps == 0 || s.TotalNeurons == 0 {
+		return 0
+	}
+	total := 0
+	for _, a := range s.ActivePerStep {
+		total += a
+	}
+	return float64(total) / float64(s.NumSteps) / float64(s.TotalNeurons)
+}
+
+// MeanSpikeRate returns the average fraction of neurons spiking per timestep.
+func (s *ActivityStats) MeanSpikeRate() float64 {
+	if s.NumSteps == 0 || s.TotalNeurons == 0 {
+		return 0
+	}
+	total := 0
+	for _, a := range s.SpikedPerStep {
+		total += a
+	}
+	return float64(total) / float64(s.NumSteps) / float64(s.TotalNeurons)
+}
+
+// PredictWithStats runs a forward pass and returns the predicted class
+// plus detailed activity statistics for energy analysis.
+func (t *Trainer) PredictWithStats(inputValues []float64) (int, ActivityStats) {
+	cfg := t.Config
+	numNeurons := len(t.Net.Neurons)
+	numSteps := cfg.NumSteps
+	numOutputs := int(cfg.Layers[len(cfg.Layers)-1].End - cfg.Layers[len(cfg.Layers)-1].Start)
+	outputStart := cfg.Layers[len(cfg.Layers)-1].Start
+
+	mem := make([]float64, numNeurons)
+	spikes := make([]float64, numNeurons)
+	spikeCounts := make([]float64, numOutputs)
+
+	stats := ActivityStats{
+		ActivePerStep: make([]int, numSteps),
+		SpikedPerStep: make([]int, numSteps),
+		TotalNeurons:  numNeurons,
+		NumSteps:      numSteps,
+	}
+
+	for step := 0; step < numSteps; step++ {
+		// Track which neurons are touched this step (received input or fired)
+		active := make([]bool, numNeurons)
+		current := make([]float64, numNeurons)
+
+		// External input
+		inputLayer := cfg.Layers[0]
+		for i := inputLayer.Start; i < inputLayer.End; i++ {
+			idx := int(i - inputLayer.Start)
+			if idx < len(inputValues) && inputValues[idx] > 0.01 {
+				current[i] += inputValues[idx] * cfg.InputWeight
+				active[i] = true
+			}
+		}
+
+		// Synaptic input from previous step's spikes
+		if step > 0 {
+			for src := 0; src < numNeurons; src++ {
+				if spikes[src] == 0 {
+					continue
+				}
+				for j, tgt := range t.connections[src] {
+					current[tgt] += t.weights[src][j]
+					active[tgt] = true
+				}
+			}
+		}
+
+		// Reset spikes for this step
+		for i := range spikes {
+			spikes[i] = 0
+		}
+
+		// Update membrane and check spikes
+		for i := 0; i < numNeurons; i++ {
+			mem[i] = cfg.Beta*mem[i] + current[i]
+			if mem[i] >= cfg.Threshold {
+				spikes[i] = 1.0
+				active[i] = true
+				if uint32(i) >= outputStart && uint32(i) < outputStart+uint32(numOutputs) {
+					spikeCounts[uint32(i)-outputStart] += 1.0
+				}
+				mem[i] -= cfg.Threshold
+			}
+		}
+
+		// Count activity
+		activeCount := 0
+		spikeCount := 0
+		for i := 0; i < numNeurons; i++ {
+			if active[i] {
+				activeCount++
+			}
+			if spikes[i] == 1.0 {
+				spikeCount++
+			}
+		}
+		stats.ActivePerStep[step] = activeCount
+		stats.SpikedPerStep[step] = spikeCount
+	}
+
+	bestClass := 0
+	bestCount := spikeCounts[0]
+	for i := 1; i < numOutputs; i++ {
+		if spikeCounts[i] > bestCount {
+			bestCount = spikeCounts[i]
+			bestClass = i
+		}
+	}
+	return bestClass, stats
+}
+
 // Predict runs a forward pass without training and returns the
 // predicted class (highest spike count). Uses float64 simulation.
 func (t *Trainer) Predict(inputValues []float64) int {
