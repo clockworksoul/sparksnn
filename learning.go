@@ -1,4 +1,4 @@
-package biomimetic
+package sparksnn
 
 // LearningRule defines the interface for synaptic plasticity mechanisms.
 // Implementations are called by the Network at key moments during

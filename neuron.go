@@ -1,6 +1,6 @@
 // Package biomimetic implements a sparse, event-driven neural network
 // architecture using biologically-inspired neurons with integer arithmetic.
-package biomimetic
+package sparksnn
 
 import "math"
 

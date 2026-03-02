@@ -1,4 +1,4 @@
-package biomimetic
+package sparksnn
 
 import (
 	"math"
