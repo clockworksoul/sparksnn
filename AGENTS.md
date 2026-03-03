@@ -128,4 +128,4 @@ A `Trainer` manages both domains. Key methods: `Train()`, `Predict()`, `EnableAd
 
 - **NO CODEX.** This is personal IP, not Yext work. Do not use any Yext-paid tools (Codex, Copilot via Yext license, etc.). Edit code directly.
 - **No floats in inference.** All neuron/connection math at inference time must be integer. Training uses float64 (the dual-domain approach). Research code and benchmarks can use floats for reporting/analysis.
-- **Paper in progress.** Draft at `~/.openclaw/workspace/research/2026-03-01-integer-snn-paper-draft.md`. Targeting conference submission.
+- **Paper in progress.** Targeting conference submission (draft maintained separately).
