@@ -59,6 +59,33 @@ type Trainer struct {
 	// Adam optimizer state
 	useAdam bool
 	adam    adamState
+
+	// Pre-allocated buffers for TrainSample, reused across calls to
+	// avoid per-sample heap allocations. Allocated once in NewTrainer
+	// and zeroed between samples via resetBuffers.
+	buf trainBuffers
+}
+
+// trainBuffers holds pre-allocated working memory for TrainSample.
+// All slices are allocated once and zeroed between samples.
+type trainBuffers struct {
+	initialized bool
+
+	// Forward pass
+	mem         []float64   // [numNeurons] membrane potentials
+	traceU      []float64   // [numNeurons * numSteps] flat: trace[i][t] = traceU[i*numSteps+t]
+	traceS      []float64   // [numNeurons * numSteps] flat: spike[i][t] = traceS[i*numSteps+t]
+	spikeCounts []float64   // [numOutputs]
+	current     []float64   // [numNeurons] reused each timestep
+
+	// Backward pass
+	dLdU []float64   // [numNeurons * numSteps] flat
+	dLdW [][]float64 // [numSrc][numConns] mirrors weights topology
+
+	// Dimensions (cached for bounds)
+	numNeurons int
+	numSteps   int
+	numOutputs int
 }
 
 // adamState holds per-weight Adam optimizer moments.
@@ -99,7 +126,48 @@ func NewTrainer(net *bio.Network, cfg Config, weightScale float64) *Trainer {
 		}
 	}
 
+	t.initBuffers()
+
 	return t
+}
+
+// initBuffers allocates the working buffers used by TrainSample.
+// Called once from NewTrainer; buffers are reused across all samples.
+func (t *Trainer) initBuffers() {
+	cfg := t.Config
+	numNeurons := len(t.Net.Neurons)
+	numSteps := cfg.NumSteps
+	numOutputs := int(cfg.Layers[len(cfg.Layers)-1].End - cfg.Layers[len(cfg.Layers)-1].Start)
+
+	t.buf = trainBuffers{
+		initialized: true,
+		mem:         make([]float64, numNeurons),
+		traceU:      make([]float64, numNeurons*numSteps),
+		traceS:      make([]float64, numNeurons*numSteps),
+		spikeCounts: make([]float64, numOutputs),
+		current:     make([]float64, numNeurons),
+		dLdU:        make([]float64, numNeurons*numSteps),
+		dLdW:        make([][]float64, len(t.weights)),
+		numNeurons:  numNeurons,
+		numSteps:    numSteps,
+		numOutputs:  numOutputs,
+	}
+	for i := range t.weights {
+		t.buf.dLdW[i] = make([]float64, len(t.weights[i]))
+	}
+}
+
+// resetBuffers zeroes all pre-allocated buffers between samples.
+func (t *Trainer) resetBuffers() {
+	clear(t.buf.mem)
+	clear(t.buf.traceU)
+	clear(t.buf.traceS)
+	clear(t.buf.spikeCounts)
+	clear(t.buf.current)
+	clear(t.buf.dLdU)
+	for i := range t.buf.dLdW {
+		clear(t.buf.dLdW[i])
+	}
 }
 
 // EnableAdam activates the Adam optimizer with standard defaults
@@ -143,44 +211,39 @@ func (t *Trainer) syncWeightsToNetwork() {
 	}
 }
 
-// neuronTrace holds the recorded state of a single neuron across time.
-type neuronTrace struct {
-	u []float64 // membrane potential before spike check
-	s []float64 // spike output (0 or 1)
-}
-
 // TrainSample performs one training step on a single sample.
 // Returns the loss value.
 //
 // inputValues are the float64 input activations (one per input neuron).
 // These are presented at every timestep (deterministic input).
+//
+// All working memory is pre-allocated on the Trainer and reused across
+// calls, eliminating per-sample heap allocations.
 func (t *Trainer) TrainSample(inputValues []float64, correctClass int) float64 {
 	cfg := t.Config
-	numNeurons := len(t.Net.Neurons)
-	numSteps := cfg.NumSteps
-	numOutputs := int(cfg.Layers[len(cfg.Layers)-1].End - cfg.Layers[len(cfg.Layers)-1].Start)
+	numNeurons := t.buf.numNeurons
+	numSteps := t.buf.numSteps
+	numOutputs := t.buf.numOutputs
 	outputStart := cfg.Layers[len(cfg.Layers)-1].Start
+
+	// Zero all buffers from previous sample
+	t.resetBuffers()
+
+	// Aliases for readability
+	mem := t.buf.mem
+	traceU := t.buf.traceU
+	traceS := t.buf.traceS
+	spikeCounts := t.buf.spikeCounts
+	current := t.buf.current
+	dLdU := t.buf.dLdU
+	dLdW := t.buf.dLdW
 
 	// ===== FORWARD PASS =====
 	// Simulate the network in float64, recording traces.
 
-	// Initialize membrane potentials
-	mem := make([]float64, numNeurons)
-	// All start at baseline (0)
-
-	// Traces for BPTT
-	traces := make([]neuronTrace, numNeurons)
-	for i := range traces {
-		traces[i].u = make([]float64, numSteps)
-		traces[i].s = make([]float64, numSteps)
-	}
-
-	// Spike counts for output neurons (for loss)
-	spikeCounts := make([]float64, numOutputs)
-
 	for step := 0; step < numSteps; step++ {
-		// Compute input currents for all neurons
-		current := make([]float64, numNeurons)
+		// Zero current for this timestep
+		clear(current)
 
 		// External input: stimulate input neurons
 		inputLayer := cfg.Layers[0]
@@ -194,7 +257,7 @@ func (t *Trainer) TrainSample(inputValues []float64, correctClass int) float64 {
 		// Synaptic input: spikes from previous step propagate
 		if step > 0 {
 			for src := 0; src < numNeurons; src++ {
-				if traces[src].s[step-1] == 0 {
+				if traceS[src*numSteps+step-1] == 0 {
 					continue // no spike from this neuron last step
 				}
 				for j, tgt := range t.connections[src] {
@@ -209,11 +272,11 @@ func (t *Trainer) TrainSample(inputValues []float64, correctClass int) float64 {
 			mem[i] = cfg.Beta*mem[i] + current[i]
 
 			// Record pre-spike membrane potential
-			traces[i].u[step] = mem[i]
+			traceU[i*numSteps+step] = mem[i]
 
 			// Spike check (Heaviside)
 			if mem[i] >= cfg.Threshold {
-				traces[i].s[step] = 1.0
+				traceS[i*numSteps+step] = 1.0
 
 				// Track output spikes
 				if uint32(i) >= outputStart && uint32(i) < outputStart+uint32(numOutputs) {
@@ -222,9 +285,8 @@ func (t *Trainer) TrainSample(inputValues []float64, correctClass int) float64 {
 
 				// Reset: subtract threshold (soft reset)
 				mem[i] -= cfg.Threshold
-			} else {
-				traces[i].s[step] = 0.0
 			}
+			// traceS already zeroed by resetBuffers
 		}
 	}
 
@@ -232,26 +294,7 @@ func (t *Trainer) TrainSample(inputValues []float64, correctClass int) float64 {
 	loss, dLdCounts := SpikeCountCrossEntropy(spikeCounts, correctClass)
 
 	// ===== BACKWARD PASS (BPTT) =====
-	// We need gradients for weights. The chain:
-	// L depends on spikeCounts
-	// spikeCounts = sum over t of S_output[t]
-	// S[t] = Heaviside(U[t] - threshold) → surrogate: dS/dU
-	// U[t] = beta * U[t-1] + sum(W * S_pre[t-1]) + I_ext
-	//
-	// So: dL/dW_ij = sum_t dL/dS_j[t] * dS_j/dU_j[t] * S_i[t-1]
-	//   + temporal terms from U[t] depending on U[t-1]
-
-	// dL/dU[t] for each neuron at each timestep
-	dLdU := make([][]float64, numNeurons)
-	for i := range dLdU {
-		dLdU[i] = make([]float64, numSteps)
-	}
-
-	// Weight gradients
-	dLdW := make([][]float64, len(t.weights))
-	for i := range dLdW {
-		dLdW[i] = make([]float64, len(t.weights[i]))
-	}
+	// dLdU and dLdW already zeroed by resetBuffers
 
 	// Backward through time
 	for step := numSteps - 1; step >= 0; step-- {
@@ -259,59 +302,48 @@ func (t *Trainer) TrainSample(inputValues []float64, correctClass int) float64 {
 		// For output neurons: dL/dS comes from the spike count loss
 		for oi := 0; oi < numOutputs; oi++ {
 			nIdx := int(outputStart) + oi
-			// Each spike at any timestep contributes equally to the count
-			// So dL/dS[t] = dL/dCount for the output neuron
-			surr := cfg.Surrogate.Derivative(traces[nIdx].u[step], cfg.Threshold)
-			dLdU[nIdx][step] += dLdCounts[oi] * surr
+			surr := cfg.Surrogate.Derivative(traceU[nIdx*numSteps+step], cfg.Threshold)
+			dLdU[nIdx*numSteps+step] += dLdCounts[oi] * surr
 		}
 
 		// Temporal gradient: dL/dU[t] propagates to dL/dU[t-1] via beta
-		// U[t] = beta * U[t-1] + ... → dU[t]/dU[t-1] = beta
-		// But only if the neuron didn't spike (reset breaks the chain)
 		if step > 0 {
 			for i := 0; i < numNeurons; i++ {
-				if traces[i].s[step] == 0 {
+				if traceS[i*numSteps+step] == 0 {
 					// No spike → membrane carries forward → gradient flows back
-					dLdU[i][step-1] += cfg.Beta * dLdU[i][step]
+					dLdU[i*numSteps+step-1] += cfg.Beta * dLdU[i*numSteps+step]
 				}
 				// If spiked: reset breaks the temporal chain (detached)
 			}
 		}
 
 		// Synaptic gradient: dL/dW_ij += dL/dU_j[t] * S_i[t-1]
-		// (pre-synaptic spike at t-1 arrives as current at t)
 		if step > 0 {
 			for src := 0; src < numNeurons; src++ {
-				if traces[src].s[step-1] == 0 {
+				if traceS[src*numSteps+step-1] == 0 {
 					continue
 				}
 				for j, tgt := range t.connections[src] {
-					dLdW[src][j] += dLdU[tgt][step]
+					dLdW[src][j] += dLdU[int(tgt)*numSteps+step]
 				}
 			}
 		}
 
-		// Propagate gradient through synapses to pre-synaptic neurons:
-		// dL/dS_i[t-1] += sum_j W_ij * dL/dU_j[t]
-		// Then: dL/dU_i[t-1] += dL/dS_i[t-1] * surrogate(U_i[t-1])
+		// Propagate gradient through synapses to pre-synaptic neurons
 		if step > 0 {
 			for src := 0; src < numNeurons; src++ {
-				if traces[src].s[step-1] == 0 {
-					continue // only need gradient if neuron spiked
+				if traceS[src*numSteps+step-1] == 0 {
+					continue
 				}
 				var dLdS float64
 				for j, tgt := range t.connections[src] {
-					dLdS += t.weights[src][j] * dLdU[tgt][step]
+					dLdS += t.weights[src][j] * dLdU[int(tgt)*numSteps+step]
 				}
-				surr := cfg.Surrogate.Derivative(traces[src].u[step-1], cfg.Threshold)
-				dLdU[src][step-1] += dLdS * surr
+				surr := cfg.Surrogate.Derivative(traceU[src*numSteps+step-1], cfg.Threshold)
+				dLdU[src*numSteps+step-1] += dLdS * surr
 			}
 		}
 	}
-
-	// Also accumulate gradients from external input at step 0
-	// (input neurons don't have incoming learned connections,
-	// so nothing to do here for weights)
 
 	// ===== WEIGHT UPDATE =====
 	lr := cfg.LearningRate
