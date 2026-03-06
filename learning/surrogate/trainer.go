@@ -578,3 +578,76 @@ func (t *Trainer) Predict(inputValues []float64) int {
 	}
 	return bestClass
 }
+
+// PredictPerTimestep runs inference and returns the predicted class at each
+// timestep. The returned slice has length NumSteps, where result[t] is the
+// class with the highest cumulative spike count after timestep t.
+// This is used for early-exit analysis: determining the minimum number of
+// timesteps needed for correct classification.
+func (t *Trainer) PredictPerTimestep(inputValues []float64) []int {
+	cfg := t.Config
+	numNeurons := len(t.Net.Neurons)
+	numSteps := cfg.NumSteps
+	numOutputs := int(cfg.Layers[len(cfg.Layers)-1].End - cfg.Layers[len(cfg.Layers)-1].Start)
+	outputStart := cfg.Layers[len(cfg.Layers)-1].Start
+
+	mem := make([]float64, numNeurons)
+	spikes := make([]float64, numNeurons)
+	spikeCounts := make([]float64, numOutputs)
+	predictions := make([]int, numSteps)
+
+	for step := 0; step < numSteps; step++ {
+		current := make([]float64, numNeurons)
+
+		// External input
+		inputLayer := cfg.Layers[0]
+		for i := inputLayer.Start; i < inputLayer.End; i++ {
+			idx := int(i - inputLayer.Start)
+			if idx < len(inputValues) {
+				current[i] += inputValues[idx] * cfg.InputWeight
+			}
+		}
+
+		// Synaptic input from previous step
+		if step > 0 {
+			for src := 0; src < numNeurons; src++ {
+				if spikes[src] == 0 {
+					continue
+				}
+				for j, tgt := range t.connections[src] {
+					current[tgt] += t.weights[src][j]
+				}
+			}
+		}
+
+		// Reset spikes for this step
+		for i := range spikes {
+			spikes[i] = 0
+		}
+
+		// Update membrane and check spikes
+		for i := 0; i < numNeurons; i++ {
+			mem[i] = cfg.Beta*mem[i] + current[i]
+			if mem[i] >= cfg.Threshold {
+				spikes[i] = 1.0
+				if uint32(i) >= outputStart && uint32(i) < outputStart+uint32(numOutputs) {
+					spikeCounts[uint32(i)-outputStart] += 1.0
+				}
+				mem[i] -= cfg.Threshold
+			}
+		}
+
+		// Record prediction at this timestep
+		bestClass := 0
+		bestCount := spikeCounts[0]
+		for c := 1; c < numOutputs; c++ {
+			if spikeCounts[c] > bestCount {
+				bestCount = spikeCounts[c]
+				bestClass = c
+			}
+		}
+		predictions[step] = bestClass
+	}
+
+	return predictions
+}

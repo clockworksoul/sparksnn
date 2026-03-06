@@ -1,0 +1,50 @@
+=== RUN   TestMNISTBaselineWithDecay
+    mnist_baseline_decay_test.go:35: Loaded 60000 training, 10000 test samples
+    mnist_baseline_decay_test.go:101: Network: 1050 neurons, 41515 connections (input→hidden 20%, hidden→output 50%)
+    mnist_baseline_decay_test.go:175: Epoch 1: acc=92.41% (best=92.41%), avgLoss=0.5260, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 2: acc=93.64% (best=93.64%), avgLoss=0.3376, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 3: acc=93.68% (best=93.68%), avgLoss=0.3093, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 4: acc=94.24% (best=94.24%), avgLoss=0.2865, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 5: acc=94.01% (best=94.24%), avgLoss=0.2756, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 6: acc=94.06% (best=94.24%), avgLoss=0.2559, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 7: acc=94.73% (best=94.73%), avgLoss=0.2393, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 8: acc=94.90% (best=94.90%), avgLoss=0.2238, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 9: acc=94.56% (best=94.90%), avgLoss=0.2102, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 10: acc=94.96% (best=94.96%), avgLoss=0.1992, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 11: acc=94.63% (best=94.96%), avgLoss=0.1812, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 12: acc=95.69% (best=95.69%), avgLoss=0.1727, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 13: acc=95.72% (best=95.72%), avgLoss=0.1495, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 14: acc=95.55% (best=95.72%), avgLoss=0.1483, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 15: acc=95.83% (best=95.83%), avgLoss=0.1364, lr=0.001000
+    mnist_baseline_decay_test.go:175: Epoch 16: acc=96.16% (best=96.16%), avgLoss=0.0896, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 17: acc=96.16% (best=96.16%), avgLoss=0.0669, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 18: acc=96.12% (best=96.16%), avgLoss=0.0562, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 19: acc=96.23% (best=96.23%), avgLoss=0.0516, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 20: acc=96.15% (best=96.23%), avgLoss=0.0451, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 21: acc=96.08% (best=96.23%), avgLoss=0.0434, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 22: acc=96.05% (best=96.23%), avgLoss=0.0391, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 23: acc=96.06% (best=96.23%), avgLoss=0.0366, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 24: acc=96.01% (best=96.23%), avgLoss=0.0340, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 25: acc=96.11% (best=96.23%), avgLoss=0.0300, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 26: acc=96.36% (best=96.36%), avgLoss=0.0307, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 27: acc=96.04% (best=96.36%), avgLoss=0.0273, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 28: acc=96.19% (best=96.36%), avgLoss=0.0279, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 29: acc=96.28% (best=96.36%), avgLoss=0.0236, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 30: acc=96.19% (best=96.36%), avgLoss=0.0226, lr=0.000500
+    mnist_baseline_decay_test.go:175: Epoch 31: acc=96.39% (best=96.39%), avgLoss=0.0163, lr=0.000250
+    mnist_baseline_decay_test.go:175: Epoch 32: acc=96.20% (best=96.39%), avgLoss=0.0127, lr=0.000250
+    mnist_baseline_decay_test.go:175: Epoch 33: acc=96.38% (best=96.39%), avgLoss=0.0121, lr=0.000250
+    mnist_baseline_decay_test.go:175: Epoch 34: acc=96.29% (best=96.39%), avgLoss=0.0110, lr=0.000250
+    mnist_baseline_decay_test.go:175: Epoch 35: acc=96.25% (best=96.39%), avgLoss=0.0104, lr=0.000250
+    mnist_baseline_decay_test.go:175: Epoch 36: acc=96.24% (best=96.39%), avgLoss=0.0099, lr=0.000250
+    mnist_baseline_decay_test.go:175: Epoch 37: acc=96.35% (best=96.39%), avgLoss=0.0090, lr=0.000250
+    mnist_baseline_decay_test.go:175: Epoch 38: acc=96.31% (best=96.39%), avgLoss=0.0089, lr=0.000250
+    mnist_baseline_decay_test.go:175: Epoch 39: acc=96.22% (best=96.39%), avgLoss=0.0083, lr=0.000250
+    mnist_baseline_decay_test.go:175: Epoch 40: acc=96.22% (best=96.39%), avgLoss=0.0074, lr=0.000250
+    mnist_baseline_decay_test.go:175: Epoch 41: acc=96.27% (best=96.39%), avgLoss=0.0067, lr=0.000250
+    mnist_baseline_decay_test.go:180: Early stopping at epoch 41 (no improvement for 10 epochs)
+    mnist_baseline_decay_test.go:185: Final best accuracy: 96.39%
+    mnist_baseline_decay_test.go:190: ✓ Achieved 96.39% — strong result
+--- PASS: TestMNISTBaselineWithDecay (2183.33s)
+PASS
+ok  	github.com/clockworksoul/sparksnn/benchmark/mnist	2183.635s
