@@ -130,13 +130,13 @@ type Params struct {
 func DefaultParams() Params {
 	return Params{
 		WeightScale:      100,
-		InhibitoryScale:  5,      // GABA neurons punch well above their weight
-		GapJunctionScale: 40,     // Gap junctions weaker per-synapse
+		InhibitoryScale:  5,  // GABA neurons punch well above their weight
+		GapJunctionScale: 40, // Gap junctions weaker per-synapse
 		Baseline:         0,
 		Threshold:        500,
-		DecayRate:        45000,  // ~69% retention — aggressive decay fights runaway
+		DecayRate:        45000, // ~69% retention — aggressive decay fights runaway
 		RefractoryPeriod: 5,
-		PostFireReset:    -150,   // Hyperpolarization after firing
+		PostFireReset:    -150, // Hyperpolarization after firing
 		UsePostFireReset: true,
 	}
 }
@@ -230,13 +230,13 @@ func BuildNetwork(
 			scale = int32(gjScale)
 		}
 
-		w := int32(r.NumConnections) * scale
+		w := int64(r.NumConnections) * int64(scale)
 
 		// Determine if inhibitory: explicit GABA neurotransmitter
 		// OR the origin is a known GABAergic neuron
 		inhibitory := r.Neurotransmitter == "GABA" || gabaMotorNeurons[r.Origin]
 		if inhibitory {
-			w = -w * int32(inhibScale)
+			w = -w * int64(inhibScale)
 		}
 
 		// Clamp to int32 range
