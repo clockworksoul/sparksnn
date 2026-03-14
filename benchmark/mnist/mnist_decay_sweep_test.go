@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
+	"runtime"
 	"testing"
 
 	bio "github.com/clockworksoul/sparksnn"
@@ -53,9 +54,16 @@ func TestMNISTDecaySweep(t *testing.T) {
 		return values
 	}
 
+	batchSize := 16
+	numWorkers := runtime.NumCPU()
+	if numWorkers > batchSize {
+		numWorkers = batchSize
+	}
+
 	t.Logf("\n========== DECAY RATE SWEEP ==========")
 	t.Logf("Architecture: 784 → 512 (30%% sparse) → 10")
 	t.Logf("Fixed 20 epochs per config, Adam + LR decay every 15")
+	t.Logf("Mini-batch: size=%d, workers=%d (relative comparison)", batchSize, numWorkers)
 	t.Logf("======================================\n")
 
 	type result struct {
@@ -153,13 +161,28 @@ func TestMNISTDecaySweep(t *testing.T) {
 			perm := rng.Perm(len(trainSamples))
 
 			totalLoss := 0.0
-			for _, pi := range perm {
-				sample := trainSamples[pi]
-				inputValues := encodeInput(sample.Inputs)
-				loss := trainer.TrainSample(inputValues, sample.Label)
+			numBatches := 0
+
+			for batchStart := 0; batchStart < len(perm); batchStart += batchSize {
+				batchEnd := batchStart + batchSize
+				if batchEnd > len(perm) {
+					batchEnd = len(perm)
+				}
+
+				batch := make([]surrogate.BatchSample, batchEnd-batchStart)
+				for i, pi := range perm[batchStart:batchEnd] {
+					sample := trainSamples[pi]
+					batch[i] = surrogate.BatchSample{
+						InputValues:  encodeInput(sample.Inputs),
+						CorrectClass: sample.Label,
+					}
+				}
+
+				loss := trainer.TrainBatch(batch, numWorkers)
 				totalLoss += loss
+				numBatches++
 			}
-			avgLoss := totalLoss / float64(len(trainSamples))
+			avgLoss := totalLoss / float64(numBatches)
 
 			correct := 0
 			for _, sample := range testSamples {

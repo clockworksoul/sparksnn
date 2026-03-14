@@ -175,3 +175,5 @@
     fashionmnist_tuned_test.go:160:     9 (Ankle boot): 77.9% (779/1000)
     fashionmnist_tuned_test.go:167: Epoch 41: acc=75.84% (best=75.84%), avgLoss=0.8116, lr=0.000250
     fashionmnist_tuned_test.go:167: Epoch 42: acc=73.25% (best=75.84%), avgLoss=0.8009, lr=0.000250
+    fashionmnist_tuned_test.go:167: Epoch 43: acc=73.92% (best=75.84%), avgLoss=0.7918, lr=0.000250
+    fashionmnist_tuned_test.go:167: Epoch 44: acc=75.07% (best=75.84%), avgLoss=0.7929, lr=0.000250
