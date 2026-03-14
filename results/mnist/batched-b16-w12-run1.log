@@ -51,3 +51,8 @@
     mnist_batched_test.go:183: Epoch 47: acc=96.53% (best=96.61%), avgLoss=0.0009, lr=0.000125
     mnist_batched_test.go:183: Epoch 48: acc=96.51% (best=96.61%), avgLoss=0.0008, lr=0.000125
     mnist_batched_test.go:183: Epoch 49: acc=96.46% (best=96.61%), avgLoss=0.0008, lr=0.000125
+    mnist_batched_test.go:183: Epoch 50: acc=96.62% (best=96.62%), avgLoss=0.0005, lr=0.000125
+    mnist_batched_test.go:192: Final best accuracy: 96.62% (baseline: 97.21%)
+--- PASS: TestMNISTBatched (2087.98s)
+PASS
+ok  	github.com/clockworksoul/sparksnn/benchmark/mnist	2088.357s
