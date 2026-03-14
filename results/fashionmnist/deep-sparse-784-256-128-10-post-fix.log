@@ -1,0 +1,16 @@
+=== RUN   TestFashionMNISTDeep
+    fashionmnist_deep_test.go:28: Loaded 60000 training, 10000 test samples
+    fashionmnist_deep_test.go:109: Network: 1178 neurons, 70949 connections
+    fashionmnist_deep_test.go:110: Architecture: 784 → 256 → 128 → 10 (30% sparse hidden layers)
+    fashionmnist_deep_test.go:181:   Per-class accuracy:
+    fashionmnist_deep_test.go:184:     0 (T-shirt/top): 79.6% (796/1000)
+    fashionmnist_deep_test.go:184:     1 (Trouser): 93.0% (930/1000)
+    fashionmnist_deep_test.go:184:     2 (Pullover): 53.1% (531/1000)
+    fashionmnist_deep_test.go:184:     3 (Dress): 74.9% (749/1000)
+    fashionmnist_deep_test.go:184:     4 (Coat): 62.0% (620/1000)
+    fashionmnist_deep_test.go:184:     5 (Sandal): 71.3% (713/1000)
+    fashionmnist_deep_test.go:184:     6 (Shirt): 20.4% (204/1000)
+    fashionmnist_deep_test.go:184:     7 (Sneaker): 76.1% (761/1000)
+    fashionmnist_deep_test.go:184:     8 (Bag): 87.9% (879/1000)
+    fashionmnist_deep_test.go:184:     9 (Ankle boot): 86.3% (863/1000)
+    fashionmnist_deep_test.go:189: Epoch 1: acc=70.46% (best=70.46%), avgLoss=1.0622, lr=0.000100

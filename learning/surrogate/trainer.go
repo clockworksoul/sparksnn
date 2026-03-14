@@ -329,15 +329,20 @@ func (t *Trainer) TrainSample(inputValues []float64, correctClass int) float64 {
 			}
 		}
 
-		// Propagate gradient through synapses to pre-synaptic neurons
+		// Propagate gradient through synapses to pre-synaptic neurons.
+		// Unlike the weight gradient (which is correctly gated by spike),
+		// cross-layer gradient flows through ALL neurons via the surrogate
+		// derivative. This is essential for deep networks: neurons below
+		// threshold still receive gradient signal proportional to how close
+		// they are to spiking, enabling them to learn to fire.
 		if step > 0 {
 			for src := 0; src < numNeurons; src++ {
-				if traceS[src*numSteps+step-1] == 0 {
-					continue
-				}
 				var dLdS float64
 				for j, tgt := range t.connections[src] {
 					dLdS += t.weights[src][j] * dLdU[int(tgt)*numSteps+step]
+				}
+				if dLdS == 0 {
+					continue // no gradient to propagate
 				}
 				surr := cfg.Surrogate.Derivative(traceU[src*numSteps+step-1], cfg.Threshold)
 				dLdU[src*numSteps+step-1] += dLdS * surr
