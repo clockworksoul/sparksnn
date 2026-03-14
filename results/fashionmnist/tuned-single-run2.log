@@ -128,3 +128,50 @@
     fashionmnist_tuned_test.go:160:     9 (Ankle boot): 82.0% (820/1000)
     fashionmnist_tuned_test.go:167: Epoch 27: acc=74.73% (best=74.73%), avgLoss=0.9527, lr=0.000500
     fashionmnist_tuned_test.go:167: Epoch 28: acc=72.65% (best=74.73%), avgLoss=0.9506, lr=0.000500
+    fashionmnist_tuned_test.go:167: Epoch 29: acc=71.34% (best=74.73%), avgLoss=0.9551, lr=0.000500
+    fashionmnist_tuned_test.go:167: Epoch 30: acc=72.05% (best=74.73%), avgLoss=0.9563, lr=0.000500
+    fashionmnist_tuned_test.go:167: Epoch 31: acc=73.69% (best=74.73%), avgLoss=0.8858, lr=0.000250
+    fashionmnist_tuned_test.go:167: Epoch 32: acc=72.73% (best=74.73%), avgLoss=0.8554, lr=0.000250
+    fashionmnist_tuned_test.go:167: Epoch 33: acc=73.98% (best=74.73%), avgLoss=0.8441, lr=0.000250
+    fashionmnist_tuned_test.go:167: Epoch 34: acc=74.59% (best=74.73%), avgLoss=0.8249, lr=0.000250
+    fashionmnist_tuned_test.go:157:   Per-class accuracy:
+    fashionmnist_tuned_test.go:160:     0 (T-shirt/top): 87.2% (872/1000)
+    fashionmnist_tuned_test.go:160:     1 (Trouser): 92.5% (925/1000)
+    fashionmnist_tuned_test.go:160:     2 (Pullover): 58.3% (583/1000)
+    fashionmnist_tuned_test.go:160:     3 (Dress): 66.7% (667/1000)
+    fashionmnist_tuned_test.go:160:     4 (Coat): 64.4% (644/1000)
+    fashionmnist_tuned_test.go:160:     5 (Sandal): 85.3% (853/1000)
+    fashionmnist_tuned_test.go:160:     6 (Shirt): 37.6% (376/1000)
+    fashionmnist_tuned_test.go:160:     7 (Sneaker): 88.8% (888/1000)
+    fashionmnist_tuned_test.go:160:     8 (Bag): 90.3% (903/1000)
+    fashionmnist_tuned_test.go:160:     9 (Ankle boot): 79.0% (790/1000)
+    fashionmnist_tuned_test.go:167: Epoch 35: acc=75.01% (best=75.01%), avgLoss=0.8254, lr=0.000250
+    fashionmnist_tuned_test.go:167: Epoch 36: acc=74.76% (best=75.01%), avgLoss=0.8228, lr=0.000250
+    fashionmnist_tuned_test.go:157:   Per-class accuracy:
+    fashionmnist_tuned_test.go:160:     0 (T-shirt/top): 78.9% (789/1000)
+    fashionmnist_tuned_test.go:160:     1 (Trouser): 91.7% (917/1000)
+    fashionmnist_tuned_test.go:160:     2 (Pullover): 60.2% (602/1000)
+    fashionmnist_tuned_test.go:160:     3 (Dress): 72.3% (723/1000)
+    fashionmnist_tuned_test.go:160:     4 (Coat): 66.9% (669/1000)
+    fashionmnist_tuned_test.go:160:     5 (Sandal): 88.8% (888/1000)
+    fashionmnist_tuned_test.go:160:     6 (Shirt): 46.5% (465/1000)
+    fashionmnist_tuned_test.go:160:     7 (Sneaker): 79.8% (798/1000)
+    fashionmnist_tuned_test.go:160:     8 (Bag): 89.4% (894/1000)
+    fashionmnist_tuned_test.go:160:     9 (Ankle boot): 79.3% (793/1000)
+    fashionmnist_tuned_test.go:167: Epoch 37: acc=75.38% (best=75.38%), avgLoss=0.8214, lr=0.000250
+    fashionmnist_tuned_test.go:167: Epoch 38: acc=74.18% (best=75.38%), avgLoss=0.8254, lr=0.000250
+    fashionmnist_tuned_test.go:167: Epoch 39: acc=75.23% (best=75.38%), avgLoss=0.8247, lr=0.000250
+    fashionmnist_tuned_test.go:167: Epoch 40: acc=72.95% (best=75.38%), avgLoss=0.8194, lr=0.000250
+    fashionmnist_tuned_test.go:157:   Per-class accuracy:
+    fashionmnist_tuned_test.go:160:     0 (T-shirt/top): 86.3% (863/1000)
+    fashionmnist_tuned_test.go:160:     1 (Trouser): 91.6% (916/1000)
+    fashionmnist_tuned_test.go:160:     2 (Pullover): 66.0% (660/1000)
+    fashionmnist_tuned_test.go:160:     3 (Dress): 68.2% (682/1000)
+    fashionmnist_tuned_test.go:160:     4 (Coat): 66.5% (665/1000)
+    fashionmnist_tuned_test.go:160:     5 (Sandal): 89.4% (894/1000)
+    fashionmnist_tuned_test.go:160:     6 (Shirt): 39.9% (399/1000)
+    fashionmnist_tuned_test.go:160:     7 (Sneaker): 83.3% (833/1000)
+    fashionmnist_tuned_test.go:160:     8 (Bag): 89.3% (893/1000)
+    fashionmnist_tuned_test.go:160:     9 (Ankle boot): 77.9% (779/1000)
+    fashionmnist_tuned_test.go:167: Epoch 41: acc=75.84% (best=75.84%), avgLoss=0.8116, lr=0.000250
+    fashionmnist_tuned_test.go:167: Epoch 42: acc=73.25% (best=75.84%), avgLoss=0.8009, lr=0.000250
