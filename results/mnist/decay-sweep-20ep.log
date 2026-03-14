@@ -1,0 +1,14 @@
+=== RUN   TestMNISTDecaySweep
+    mnist_decay_sweep_test.go:28: Loaded 60000 training, 10000 test samples
+    mnist_decay_sweep_test.go:56: 
+        ========== DECAY RATE SWEEP ==========
+    mnist_decay_sweep_test.go:57: Architecture: 784 → 512 (30% sparse) → 10
+    mnist_decay_sweep_test.go:58: Fixed 20 epochs per config, Adam + LR decay every 15
+    mnist_decay_sweep_test.go:59: ======================================
+    mnist_decay_sweep_test.go:73: 
+        --- Running: β=0.50 (very leaky) (uint16=32768) ---
+    mnist_decay_sweep_test.go:189:   Epoch 1: acc=9.80% (best=9.80%), avgLoss=2.3026, lr=0.001000
+    mnist_decay_sweep_test.go:189:   Epoch 2: acc=9.80% (best=9.80%), avgLoss=2.3026, lr=0.001000
+    mnist_decay_sweep_test.go:189:   Epoch 3: acc=9.80% (best=9.80%), avgLoss=2.3026, lr=0.001000
+    mnist_decay_sweep_test.go:189:   Epoch 4: acc=9.80% (best=9.80%), avgLoss=2.3026, lr=0.001000
+    mnist_decay_sweep_test.go:189:   Epoch 5: acc=9.80% (best=9.80%), avgLoss=2.3026, lr=0.001000
