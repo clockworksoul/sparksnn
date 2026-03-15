@@ -1,0 +1,62 @@
+=== RUN   TestMNISTDeepDense
+    mnist_deep_dense_test.go:27: Loaded 60000 training, 10000 test samples
+    mnist_deep_dense_test.go:99: Network: 944 neurons, 83900 connections (expected 83,900)
+    mnist_deep_dense_test.go:100: Architecture: 784 → 100 → 50 → 10 (fully dense)
+    mnist_deep_dense_test.go:171: Epoch 1: acc=84.98% (best=84.98%), avgLoss=0.7572, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 2: acc=89.38% (best=89.38%), avgLoss=0.5581, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 3: acc=91.49% (best=91.49%), avgLoss=0.5104, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 4: acc=89.85% (best=91.49%), avgLoss=0.4745, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 5: acc=90.69% (best=91.49%), avgLoss=0.4192, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 6: acc=91.86% (best=91.86%), avgLoss=0.4209, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 7: acc=91.92% (best=91.92%), avgLoss=0.3813, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 8: acc=93.39% (best=93.39%), avgLoss=0.3592, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 9: acc=92.36% (best=93.39%), avgLoss=0.3372, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 10: acc=90.02% (best=93.39%), avgLoss=0.3437, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 11: acc=94.11% (best=94.11%), avgLoss=0.3372, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 12: acc=92.53% (best=94.11%), avgLoss=0.3362, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 13: acc=92.39% (best=94.11%), avgLoss=0.3236, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 14: acc=93.33% (best=94.11%), avgLoss=0.3182, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 15: acc=93.97% (best=94.11%), avgLoss=0.3107, lr=0.001000
+    mnist_deep_dense_test.go:171: Epoch 16: acc=94.31% (best=94.31%), avgLoss=0.2416, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 17: acc=93.54% (best=94.31%), avgLoss=0.2106, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 18: acc=95.07% (best=95.07%), avgLoss=0.1968, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 19: acc=94.97% (best=95.07%), avgLoss=0.1766, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 20: acc=95.37% (best=95.37%), avgLoss=0.1756, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 21: acc=95.08% (best=95.37%), avgLoss=0.1743, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 22: acc=94.91% (best=95.37%), avgLoss=0.1733, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 23: acc=95.27% (best=95.37%), avgLoss=0.1616, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 24: acc=95.07% (best=95.37%), avgLoss=0.1582, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 25: acc=95.22% (best=95.37%), avgLoss=0.1530, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 26: acc=95.72% (best=95.72%), avgLoss=0.1659, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 27: acc=95.18% (best=95.72%), avgLoss=0.1480, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 28: acc=95.57% (best=95.72%), avgLoss=0.1440, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 29: acc=95.22% (best=95.72%), avgLoss=0.1409, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 30: acc=95.05% (best=95.72%), avgLoss=0.1374, lr=0.000500
+    mnist_deep_dense_test.go:171: Epoch 31: acc=95.75% (best=95.75%), avgLoss=0.1123, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 32: acc=96.02% (best=96.02%), avgLoss=0.0888, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 33: acc=96.06% (best=96.06%), avgLoss=0.0831, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 34: acc=95.95% (best=96.06%), avgLoss=0.0714, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 35: acc=95.97% (best=96.06%), avgLoss=0.0695, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 36: acc=95.95% (best=96.06%), avgLoss=0.0655, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 37: acc=96.04% (best=96.06%), avgLoss=0.0668, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 38: acc=96.18% (best=96.18%), avgLoss=0.0645, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 39: acc=96.13% (best=96.18%), avgLoss=0.0577, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 40: acc=95.98% (best=96.18%), avgLoss=0.0595, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 41: acc=96.10% (best=96.18%), avgLoss=0.0593, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 42: acc=96.06% (best=96.18%), avgLoss=0.0552, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 43: acc=96.06% (best=96.18%), avgLoss=0.0529, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 44: acc=96.14% (best=96.18%), avgLoss=0.0530, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 45: acc=96.15% (best=96.18%), avgLoss=0.0506, lr=0.000250
+    mnist_deep_dense_test.go:171: Epoch 46: acc=96.03% (best=96.18%), avgLoss=0.0374, lr=0.000125
+    mnist_deep_dense_test.go:171: Epoch 47: acc=96.15% (best=96.18%), avgLoss=0.0319, lr=0.000125
+    mnist_deep_dense_test.go:171: Epoch 48: acc=96.27% (best=96.27%), avgLoss=0.0320, lr=0.000125
+    mnist_deep_dense_test.go:171: Epoch 49: acc=96.12% (best=96.27%), avgLoss=0.0312, lr=0.000125
+    mnist_deep_dense_test.go:171: Epoch 50: acc=96.11% (best=96.27%), avgLoss=0.0292, lr=0.000125
+    mnist_deep_dense_test.go:181: 
+        Final best accuracy: 96.27%
+    mnist_deep_dense_test.go:182: PocketNN reference: 96.98% (DFA, integer-only training, 3 epochs)
+    mnist_deep_dense_test.go:183: SparkSNN tuned reference: 97.21% (784→512 sparse, surrogate grad, 42 epochs)
+    mnist_deep_dense_test.go:190: ⚠ Below PocketNN's 96.98% — depth gradient attenuation?
+--- PASS: TestMNISTDeepDense (15174.21s)
+PASS
+ok  	github.com/clockworksoul/sparksnn/benchmark/mnist	15174.903s
