@@ -1,0 +1,42 @@
+=== RUN   TestMNISTTuned
+    mnist_tuned_test.go:22: Loaded 60000 training, 10000 test samples
+    mnist_tuned_test.go:85: Network: 1306 neurons, 123600 connections
+    mnist_tuned_test.go:154: Epoch 1: acc=91.48% (best=91.48%), avgLoss=0.7377, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 2: acc=90.80% (best=91.48%), avgLoss=0.4760, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 3: acc=93.05% (best=93.05%), avgLoss=0.3729, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 4: acc=94.89% (best=94.89%), avgLoss=0.3406, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 5: acc=94.90% (best=94.90%), avgLoss=0.2722, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 6: acc=95.00% (best=95.00%), avgLoss=0.2376, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 7: acc=95.70% (best=95.70%), avgLoss=0.2126, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 8: acc=95.31% (best=95.70%), avgLoss=0.1905, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 9: acc=96.09% (best=96.09%), avgLoss=0.1612, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 10: acc=96.12% (best=96.12%), avgLoss=0.1496, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 11: acc=96.26% (best=96.26%), avgLoss=0.1432, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 12: acc=96.39% (best=96.39%), avgLoss=0.1171, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 13: acc=96.44% (best=96.44%), avgLoss=0.1156, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 14: acc=96.48% (best=96.48%), avgLoss=0.0992, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 15: acc=96.19% (best=96.48%), avgLoss=0.0881, lr=0.001000
+    mnist_tuned_test.go:154: Epoch 16: acc=96.71% (best=96.71%), avgLoss=0.0499, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 17: acc=96.84% (best=96.84%), avgLoss=0.0324, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 18: acc=96.77% (best=96.84%), avgLoss=0.0261, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 19: acc=96.88% (best=96.88%), avgLoss=0.0232, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 20: acc=96.59% (best=96.88%), avgLoss=0.0220, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 21: acc=96.81% (best=96.88%), avgLoss=0.0186, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 22: acc=96.81% (best=96.88%), avgLoss=0.0199, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 23: acc=96.95% (best=96.95%), avgLoss=0.0191, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 24: acc=96.91% (best=96.95%), avgLoss=0.0150, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 25: acc=96.75% (best=96.95%), avgLoss=0.0162, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 26: acc=96.79% (best=96.95%), avgLoss=0.0132, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 27: acc=96.74% (best=96.95%), avgLoss=0.0139, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 28: acc=96.73% (best=96.95%), avgLoss=0.0114, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 29: acc=96.94% (best=96.95%), avgLoss=0.0128, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 30: acc=96.79% (best=96.95%), avgLoss=0.0122, lr=0.000500
+    mnist_tuned_test.go:154: Epoch 31: acc=96.91% (best=96.95%), avgLoss=0.0059, lr=0.000250
+    mnist_tuned_test.go:154: Epoch 32: acc=96.93% (best=96.95%), avgLoss=0.0045, lr=0.000250
+    mnist_tuned_test.go:154: Epoch 33: acc=96.81% (best=96.95%), avgLoss=0.0039, lr=0.000250
+    mnist_tuned_test.go:159: Early stopping at epoch 33 (no improvement for 10 epochs)
+    mnist_tuned_test.go:164: Final best accuracy: 96.95%
+    mnist_tuned_test.go:171: ✓ Achieved 96.95% — solid
+--- PASS: TestMNISTTuned (12896.73s)
+PASS
+ok  	github.com/clockworksoul/sparksnn/benchmark/mnist	12897.112s

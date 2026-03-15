@@ -1,0 +1,43 @@
+=== RUN   TestIrisSurrogate
+    iris_surrogate_test.go:188: Epoch 10: acc=73.3% (best=73.3%), avgLoss=0.2380
+    iris_surrogate_test.go:188: Epoch 20: acc=96.7% (best=96.7%), avgLoss=0.4416
+    iris_surrogate_test.go:188: Epoch 30: acc=86.7% (best=96.7%), avgLoss=0.0696
+    iris_surrogate_test.go:188: Epoch 40: acc=83.3% (best=96.7%), avgLoss=0.1322
+    iris_surrogate_test.go:188: Epoch 50: acc=83.3% (best=96.7%), avgLoss=0.0615
+    iris_surrogate_test.go:188: Epoch 60: acc=90.0% (best=96.7%), avgLoss=0.0602
+    iris_surrogate_test.go:188: Epoch 70: acc=86.7% (best=96.7%), avgLoss=0.0530
+    iris_surrogate_test.go:188: Epoch 80: acc=96.7% (best=96.7%), avgLoss=0.0932
+    iris_surrogate_test.go:188: Epoch 90: acc=86.7% (best=96.7%), avgLoss=0.0366
+    iris_surrogate_test.go:188: Epoch 100: acc=86.7% (best=96.7%), avgLoss=0.0366
+    iris_surrogate_test.go:188: Epoch 110: acc=90.0% (best=96.7%), avgLoss=0.0865
+    iris_surrogate_test.go:188: Epoch 120: acc=80.0% (best=96.7%), avgLoss=0.0462
+    iris_surrogate_test.go:188: Epoch 130: acc=86.7% (best=96.7%), avgLoss=0.0366
+    iris_surrogate_test.go:188: Epoch 140: acc=83.3% (best=96.7%), avgLoss=0.0367
+    iris_surrogate_test.go:188: Epoch 150: acc=83.3% (best=96.7%), avgLoss=0.0283
+    iris_surrogate_test.go:188: Epoch 160: acc=86.7% (best=96.7%), avgLoss=0.0275
+    iris_surrogate_test.go:188: Epoch 170: acc=86.7% (best=96.7%), avgLoss=0.0275
+    iris_surrogate_test.go:188: Epoch 180: acc=86.7% (best=96.7%), avgLoss=0.0275
+    iris_surrogate_test.go:188: Epoch 190: acc=83.3% (best=96.7%), avgLoss=0.0296
+    iris_surrogate_test.go:188: Epoch 200: acc=90.0% (best=96.7%), avgLoss=0.0510
+    iris_surrogate_test.go:188: Epoch 210: acc=86.7% (best=96.7%), avgLoss=0.0275
+    iris_surrogate_test.go:188: Epoch 220: acc=86.7% (best=96.7%), avgLoss=0.0275
+    iris_surrogate_test.go:188: Epoch 230: acc=86.7% (best=96.7%), avgLoss=0.0192
+    iris_surrogate_test.go:188: Epoch 240: acc=80.0% (best=96.7%), avgLoss=0.1284
+    iris_surrogate_test.go:188: Epoch 250: acc=80.0% (best=96.7%), avgLoss=0.0955
+    iris_surrogate_test.go:188: Epoch 260: acc=80.0% (best=96.7%), avgLoss=0.0848
+    iris_surrogate_test.go:188: Epoch 270: acc=80.0% (best=96.7%), avgLoss=0.0692
+    iris_surrogate_test.go:188: Epoch 280: acc=96.7% (best=96.7%), avgLoss=0.0128
+    iris_surrogate_test.go:188: Epoch 290: acc=96.7% (best=96.7%), avgLoss=0.0062
+    iris_surrogate_test.go:188: Epoch 300: acc=96.7% (best=96.7%), avgLoss=0.0059
+    iris_surrogate_test.go:193: Final best accuracy: 96.7%
+    iris_surrogate_test.go:196: ✓ Achieved 96.7% — matches arbiter baseline!
+    iris_surrogate_test.go:207: 
+    iris_surrogate_test.go:208: === Int32 vs Float64 Inference Comparison ===
+    iris_surrogate_test.go:257:   Sample 24: float64=2, int32=1, label=2, spikes=[0 6 4]
+    iris_surrogate_test.go:265: Float64 accuracy: 100.0% (30/30)
+    iris_surrogate_test.go:266: Int32   accuracy: 96.7% (29/30)
+    iris_surrogate_test.go:267: Mismatches: 1/30 samples
+    iris_surrogate_test.go:272: ✓ 1 mismatches (3.3%) — minor quantization differences
+--- PASS: TestIrisSurrogate (2.18s)
+PASS
+ok  	github.com/clockworksoul/sparksnn/benchmark/iris	2.495s
