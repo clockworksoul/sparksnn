@@ -166,38 +166,13 @@
     fashionmnist_tuned_test.go:167: Epoch 31: acc=77.64% (best=79.02%), avgLoss=0.6375, lr=0.000250
     fashionmnist_tuned_test.go:167: Epoch 32: acc=78.39% (best=79.02%), avgLoss=0.6081, lr=0.000250
     fashionmnist_tuned_test.go:167: Epoch 33: acc=78.36% (best=79.02%), avgLoss=0.5990, lr=0.000250
-panic: test timed out after 4h0m0s
-	running tests:
-		TestFashionMNISTTuned (4h0m0s)
-
-goroutine 33 [running]:
-testing.(*M).startAlarm.func1()
-	/usr/local/go/src/testing/testing.go:2802 +0x2c4
-created by time.goFunc
-	/usr/local/go/src/time/sleep.go:215 +0x38
-
-goroutine 1 [chan receive, 240 minutes]:
-testing.(*T).Run(0x3219168a4008, {0x1023caa88?, 0x32191689bb18?}, 0x10252ca48)
-	/usr/local/go/src/testing/testing.go:2109 +0x3bc
-testing.runTests.func1(0x3219168a4008)
-	/usr/local/go/src/testing/testing.go:2585 +0x38
-testing.tRunner(0x3219168a4008, 0x32191689bc48)
-	/usr/local/go/src/testing/testing.go:2036 +0xc4
-testing.runTests({0x1023ce3cf, 0x21}, {0x1023d2b7f, 0x38}, 0x32191676a030, {0x102552020, 0x3, 0x3}, {0x8080808022370f49?, 0x1023c8d2e?, ...})
-	/usr/local/go/src/testing/testing.go:2583 +0x3f0
-testing.(*M).Run(0x3219167e8140)
-	/usr/local/go/src/testing/testing.go:2443 +0x578
-main.main()
-	_testmain.go:50 +0x80
-
-goroutine 7 [runnable]:
-github.com/clockworksoul/sparksnn/learning/surrogate.(*Trainer).TrainSample(0x32191cd468c0, {0x32191d3a3980, 0x310, 0x310?}, 0x2)
-	/Users/matt/workspace/clockworksoul/sparksnn/learning/surrogate/trainer.go:342 +0xa2c
-github.com/clockworksoul/sparksnn/benchmark/fashionmnist.TestFashionMNISTTuned(0x3219168a4248)
-	/Users/matt/workspace/clockworksoul/sparksnn/benchmark/fashionmnist/fashionmnist_tuned_test.go:133 +0x97c
-testing.tRunner(0x3219168a4248, 0x10252ca48)
-	/usr/local/go/src/testing/testing.go:2036 +0xc4
-created by testing.(*T).Run in goroutine 1
-	/usr/local/go/src/testing/testing.go:2101 +0x3a8
-FAIL	github.com/clockworksoul/sparksnn/benchmark/fashionmnist	14400.245s
-FAIL
+    fashionmnist_tuned_test.go:167: Epoch 34: acc=78.29% (best=79.02%), avgLoss=0.5988, lr=0.000250
+    fashionmnist_tuned_test.go:167: Epoch 35: acc=78.47% (best=79.02%), avgLoss=0.5917, lr=0.000250
+    fashionmnist_tuned_test.go:172: Early stopping at epoch 35 (no improvement for 10 epochs)
+    fashionmnist_tuned_test.go:177: Final best accuracy: 79.02%
+    fashionmnist_tuned_test.go:180: 
+        Class names: [T-shirt/top Trouser Pullover Dress Coat Sandal Shirt Sneaker Bag Ankle boot]
+    fashionmnist_tuned_test.go:189: ⚠ Achieved 79.02% — needs tuning
+--- PASS: TestFashionMNISTTuned (14385.22s)
+PASS
+ok  	github.com/clockworksoul/sparksnn/benchmark/fashionmnist	14385.597s
