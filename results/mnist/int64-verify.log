@@ -16,3 +16,50 @@
     mnist_int32_verify_test.go:155: Epoch 13: acc=96.44% (best=96.44%), avgLoss=0.1156, lr=0.001000
     mnist_int32_verify_test.go:155: Epoch 14: acc=96.48% (best=96.48%), avgLoss=0.0992, lr=0.001000
     mnist_int32_verify_test.go:155: Epoch 15: acc=96.19% (best=96.48%), avgLoss=0.0881, lr=0.001000
+    mnist_int32_verify_test.go:155: Epoch 16: acc=96.71% (best=96.71%), avgLoss=0.0499, lr=0.000500
+    mnist_int32_verify_test.go:155: Epoch 17: acc=96.84% (best=96.84%), avgLoss=0.0324, lr=0.000500
+    mnist_int32_verify_test.go:155: Epoch 18: acc=96.77% (best=96.84%), avgLoss=0.0261, lr=0.000500
+    mnist_int32_verify_test.go:155: Epoch 19: acc=96.88% (best=96.88%), avgLoss=0.0232, lr=0.000500
+    mnist_int32_verify_test.go:155: Epoch 20: acc=96.59% (best=96.88%), avgLoss=0.0220, lr=0.000500
+    mnist_int32_verify_test.go:155: Epoch 21: acc=96.81% (best=96.88%), avgLoss=0.0186, lr=0.000500
+    mnist_int32_verify_test.go:155: Epoch 22: acc=96.81% (best=96.88%), avgLoss=0.0199, lr=0.000500
+    mnist_int32_verify_test.go:155: Epoch 23: acc=96.95% (best=96.95%), avgLoss=0.0191, lr=0.000500
+    mnist_int32_verify_test.go:155: Epoch 24: acc=96.91% (best=96.95%), avgLoss=0.0150, lr=0.000500
+    mnist_int32_verify_test.go:155: Epoch 25: acc=96.75% (best=96.95%), avgLoss=0.0162, lr=0.000500
+    mnist_int32_verify_test.go:155: Epoch 26: acc=96.79% (best=96.95%), avgLoss=0.0132, lr=0.000500
+    mnist_int32_verify_test.go:155: Epoch 27: acc=96.74% (best=96.95%), avgLoss=0.0139, lr=0.000500
+    mnist_int32_verify_test.go:155: Epoch 28: acc=96.73% (best=96.95%), avgLoss=0.0114, lr=0.000500
+    mnist_int32_verify_test.go:155: Epoch 29: acc=96.94% (best=96.95%), avgLoss=0.0128, lr=0.000500
+    mnist_int32_verify_test.go:155: Epoch 30: acc=96.79% (best=96.95%), avgLoss=0.0122, lr=0.000500
+    mnist_int32_verify_test.go:159: 
+        Training complete. Best float64 accuracy: 96.95%
+    mnist_int32_verify_test.go:162: 
+    mnist_int32_verify_test.go:163: === Int32 vs Float64 Inference Comparison (10,000 samples) ===
+    mnist_int32_verify_test.go:216:   Mismatch sample 8: float64=5, int32=-1, label=5, spikes=[0 0 0 0 0 0 0 0 0 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 61: float64=8, int32=2, label=8, spikes=[0 0 13 0 0 0 0 0 9 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 115: float64=9, int32=-1, label=4, spikes=[0 0 0 0 0 0 0 0 0 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 195: float64=0, int32=-1, label=3, spikes=[0 0 0 0 0 0 0 0 0 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 241: float64=8, int32=9, label=9, spikes=[0 0 0 0 0 0 0 0 2 3]
+    mnist_int32_verify_test.go:216:   Mismatch sample 247: float64=6, int32=2, label=4, spikes=[0 0 13 0 0 0 13 0 0 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 290: float64=5, int32=8, label=8, spikes=[0 0 0 0 8 12 0 0 13 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 320: float64=9, int32=8, label=9, spikes=[0 0 0 0 0 0 0 0 1 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 324: float64=0, int32=-1, label=0, spikes=[0 0 0 0 0 0 0 0 0 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 339: float64=0, int32=6, label=6, spikes=[0 0 0 0 0 0 3 0 0 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 358: float64=0, int32=-1, label=7, spikes=[0 0 0 0 0 0 0 0 0 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 359: float64=9, int32=4, label=9, spikes=[0 0 0 0 2 0 0 0 0 1]
+    mnist_int32_verify_test.go:216:   Mismatch sample 381: float64=3, int32=7, label=3, spikes=[0 0 0 4 0 0 0 5 0 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 443: float64=2, int32=-1, label=0, spikes=[0 0 0 0 0 0 0 0 0 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 448: float64=9, int32=-1, label=9, spikes=[0 0 0 0 0 0 0 0 0 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 449: float64=3, int32=5, label=3, spikes=[0 0 0 11 0 13 0 0 0 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 478: float64=5, int32=8, label=5, spikes=[0 0 0 0 0 0 0 0 1 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 495: float64=0, int32=8, label=8, spikes=[1 0 0 0 0 0 0 0 3 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 543: float64=0, int32=-1, label=8, spikes=[0 0 0 0 0 0 0 0 0 0]
+    mnist_int32_verify_test.go:216:   Mismatch sample 582: float64=8, int32=2, label=8, spikes=[0 0 3 0 0 0 0 0 3 0]
+    mnist_int32_verify_test.go:225: 
+    mnist_int32_verify_test.go:226: Float64 accuracy: 96.79% (9679/10000)
+    mnist_int32_verify_test.go:227: Int32   accuracy: 95.79% (9579/10000)
+    mnist_int32_verify_test.go:228: Mismatches: 291/10000 samples (2.91%)
+    mnist_int32_verify_test.go:240: ⚠ 291 mismatches (2.91%) — minor quantization differences
+--- PASS: TestMNISTInt32Verification (11525.11s)
+PASS
+ok  	github.com/clockworksoul/sparksnn/benchmark/mnist	11525.310s

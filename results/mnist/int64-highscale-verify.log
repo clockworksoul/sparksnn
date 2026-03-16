@@ -1,0 +1,65 @@
+=== RUN   TestMNISTInt64HighScale
+    mnist_int64_highscale_test.go:26: Loaded 60000 training, 10000 test samples
+    mnist_int64_highscale_test.go:89: Network: 1306 neurons, 123600 connections
+    mnist_int64_highscale_test.go:155: Epoch 1: acc=90.29% (best=90.29%), avgLoss=0.7120, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 2: acc=91.22% (best=91.22%), avgLoss=0.4572, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 3: acc=93.97% (best=93.97%), avgLoss=0.3912, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 4: acc=94.37% (best=94.37%), avgLoss=0.3262, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 5: acc=95.03% (best=95.03%), avgLoss=0.2918, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 6: acc=95.23% (best=95.23%), avgLoss=0.2397, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 7: acc=95.94% (best=95.94%), avgLoss=0.2106, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 8: acc=95.69% (best=95.94%), avgLoss=0.1853, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 9: acc=95.67% (best=95.94%), avgLoss=0.1757, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 10: acc=96.54% (best=96.54%), avgLoss=0.1449, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 11: acc=96.23% (best=96.54%), avgLoss=0.1329, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 12: acc=96.15% (best=96.54%), avgLoss=0.1189, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 13: acc=96.59% (best=96.59%), avgLoss=0.1157, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 14: acc=96.59% (best=96.59%), avgLoss=0.1032, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 15: acc=96.47% (best=96.59%), avgLoss=0.0902, lr=0.001000
+    mnist_int64_highscale_test.go:155: Epoch 16: acc=96.93% (best=96.93%), avgLoss=0.0499, lr=0.000500
+    mnist_int64_highscale_test.go:155: Epoch 17: acc=96.68% (best=96.93%), avgLoss=0.0331, lr=0.000500
+    mnist_int64_highscale_test.go:155: Epoch 18: acc=97.00% (best=97.00%), avgLoss=0.0288, lr=0.000500
+    mnist_int64_highscale_test.go:155: Epoch 19: acc=96.89% (best=97.00%), avgLoss=0.0242, lr=0.000500
+    mnist_int64_highscale_test.go:155: Epoch 20: acc=97.00% (best=97.00%), avgLoss=0.0246, lr=0.000500
+    mnist_int64_highscale_test.go:155: Epoch 21: acc=97.00% (best=97.00%), avgLoss=0.0198, lr=0.000500
+    mnist_int64_highscale_test.go:155: Epoch 22: acc=96.87% (best=97.00%), avgLoss=0.0187, lr=0.000500
+    mnist_int64_highscale_test.go:155: Epoch 23: acc=96.76% (best=97.00%), avgLoss=0.0200, lr=0.000500
+    mnist_int64_highscale_test.go:155: Epoch 24: acc=96.95% (best=97.00%), avgLoss=0.0154, lr=0.000500
+    mnist_int64_highscale_test.go:155: Epoch 25: acc=96.84% (best=97.00%), avgLoss=0.0138, lr=0.000500
+    mnist_int64_highscale_test.go:155: Epoch 26: acc=96.85% (best=97.00%), avgLoss=0.0157, lr=0.000500
+    mnist_int64_highscale_test.go:155: Epoch 27: acc=96.81% (best=97.00%), avgLoss=0.0123, lr=0.000500
+    mnist_int64_highscale_test.go:155: Epoch 28: acc=96.80% (best=97.00%), avgLoss=0.0138, lr=0.000500
+    mnist_int64_highscale_test.go:155: Epoch 29: acc=96.68% (best=97.00%), avgLoss=0.0113, lr=0.000500
+    mnist_int64_highscale_test.go:155: Epoch 30: acc=96.80% (best=97.00%), avgLoss=0.0119, lr=0.000500
+    mnist_int64_highscale_test.go:159: 
+        Training complete. Best float64 accuracy: 97.00%
+    mnist_int64_highscale_test.go:162: 
+    mnist_int64_highscale_test.go:163: === Int32 vs Float64 Inference Comparison (10,000 samples) ===
+    mnist_int64_highscale_test.go:216:   Mismatch sample 33: float64=4, int32=0, label=4, spikes=[5 0 0 0 5 0 0 0 0 0]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 46: float64=1, int32=3, label=1, spikes=[0 4 0 5 0 0 0 0 0 0]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 66: float64=0, int32=6, label=6, spikes=[0 0 0 1 0 0 2 0 0 0]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 92: float64=9, int32=4, label=9, spikes=[0 0 0 0 2 0 0 0 0 2]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 104: float64=9, int32=5, label=9, spikes=[0 0 0 1 0 4 0 0 0 4]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 121: float64=4, int32=-1, label=4, spikes=[0 0 0 0 0 0 0 0 0 0]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 273: float64=8, int32=9, label=9, spikes=[0 0 0 0 0 0 0 0 9 11]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 315: float64=3, int32=9, label=9, spikes=[0 0 0 1 0 0 0 0 0 9]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 369: float64=3, int32=7, label=3, spikes=[0 0 0 0 0 0 0 1 0 0]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 449: float64=3, int32=5, label=3, spikes=[1 0 0 5 0 8 0 0 0 0]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 460: float64=5, int32=7, label=5, spikes=[0 0 0 0 0 0 0 2 0 0]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 499: float64=2, int32=6, label=6, spikes=[0 0 2 0 0 0 3 0 0 0]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 508: float64=6, int32=5, label=6, spikes=[0 0 0 0 0 9 9 0 0 0]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 547: float64=2, int32=-1, label=2, spikes=[0 0 0 0 0 0 0 0 0 0]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 553: float64=5, int32=8, label=8, spikes=[0 0 0 0 0 7 2 0 11 0]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 627: float64=9, int32=2, label=9, spikes=[0 0 4 0 0 0 0 0 0 1]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 659: float64=7, int32=2, label=2, spikes=[0 2 9 3 0 0 0 0 0 0]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 689: float64=7, int32=4, label=7, spikes=[0 0 0 0 5 0 0 2 0 0]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 720: float64=8, int32=5, label=5, spikes=[0 1 0 0 0 10 0 0 7 0]
+    mnist_int64_highscale_test.go:216:   Mismatch sample 726: float64=9, int32=7, label=7, spikes=[0 0 0 1 0 0 0 3 0 3]
+    mnist_int64_highscale_test.go:225: 
+    mnist_int64_highscale_test.go:226: Float64 accuracy: 96.80% (9680/10000)
+    mnist_int64_highscale_test.go:227: Int32   accuracy: 95.82% (9582/10000)
+    mnist_int64_highscale_test.go:228: Mismatches: 293/10000 samples (2.93%)
+    mnist_int64_highscale_test.go:240: ⚠ 293 mismatches (2.93%) — minor quantization differences
+--- PASS: TestMNISTInt64HighScale (11430.81s)
+PASS
+ok  	github.com/clockworksoul/sparksnn/benchmark/mnist	11431.330s

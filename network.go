@@ -62,6 +62,15 @@ type Network struct {
 	// nextPending collects stimulations generated during the current
 	// Tick(), to be processed on the next Tick().
 	nextPending []PendingStimulation
+
+	// accumBuf is a dense per-neuron accumulation buffer, indexed
+	// by neuron ID. Allocated once (len == len(Neurons)) and zeroed
+	// per tick via the dirty list. Replaces map for O(1) access.
+	accumBuf []int64
+
+	// accumDirty tracks which indices in accumBuf were written
+	// during the current tick, so we can zero only those entries.
+	accumDirty []uint32
 }
 
 // NewNetwork creates a network with the given number of neurons.
@@ -231,18 +240,26 @@ func (net *Network) Tick() int {
 	net.pending, net.nextPending = net.nextPending, net.pending[:0]
 
 	// Phase 1: Accumulate all stimulations per target neuron.
-	// We reuse a map to sum weights. For small networks this is fine;
-	// for large networks we could use a dense array keyed by index.
-	accumulated := make(map[uint32]int64)
+	// Uses a dense slice indexed by neuron ID for O(1) access.
+	n := uint32(len(net.Neurons))
+	if len(net.accumBuf) < int(n) {
+		net.accumBuf = make([]int64, n)
+		net.accumDirty = make([]uint32, 0, n/4+1)
+	}
 	for _, stim := range net.pending {
-		if stim.Target < uint32(len(net.Neurons)) {
-			accumulated[stim.Target] += stim.Weight
+		t := stim.Target
+		if t < n {
+			if net.accumBuf[t] == 0 {
+				net.accumDirty = append(net.accumDirty, t)
+			}
+			net.accumBuf[t] += stim.Weight
 		}
 	}
 
 	// Phase 2: Apply accumulated stimulation and evaluate firing.
 	fired := 0
-	for target, totalWeight := range accumulated {
+	for _, target := range net.accumDirty {
+		totalWeight := net.accumBuf[target]
 		// Clamp accumulated weight to int32 range
 		w := totalWeight
 		if w > int64(MaxActivation) {
@@ -257,7 +274,11 @@ func (net *Network) Tick() int {
 			net.fireIdx(target)
 			fired++
 		}
+
+		// Zero the entry for next tick
+		net.accumBuf[target] = 0
 	}
+	net.accumDirty = net.accumDirty[:0]
 
 	// Learning: maintain eligibility traces (decay, cleanup)
 	if net.LearningRule != nil {

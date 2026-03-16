@@ -35,7 +35,7 @@ func TestIrisSurrogate(t *testing.T) {
 	refractoryPeriod := uint32(3)
 
 	// Int32 scale factor: multiply float64 weights by this to get int32
-	intScale := float64(1 << 16) // 65536
+	intScale := float64(1 << 30) // 1073741824
 
 	// Network uses scaled int32 weights for inference
 	intThreshold := int32(threshold * intScale)
