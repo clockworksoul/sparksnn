@@ -31,7 +31,7 @@ func TestHybridDelegation(t *testing.T) {
 	net.Tick()
 
 	// Deliver reward — should trigger both R-STDP and perturbation
-	initialWeights := make([]int32, 0)
+	initialWeights := make([]int64, 0)
 	for i := range net.Neurons {
 		for _, c := range net.Neurons[i].Connections {
 			initialWeights = append(initialWeights, c.Weight)

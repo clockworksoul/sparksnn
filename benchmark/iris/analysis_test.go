@@ -58,7 +58,7 @@ func TestIrisAnalysis(t *testing.T) {
 		}
 
 		bestScore := evaluate()
-		perturbSize := int32(300)
+		perturbSize := int64(300)
 		noImproveCount := 0
 
 		for step := 0; step < 20000; step++ {
@@ -66,11 +66,11 @@ func TestIrisAnalysis(t *testing.T) {
 			conn := &net.Neurons[ref.neuronIdx].Connections[ref.connIdx]
 
 			oldWeight := conn.Weight
-			delta := int32(rand.IntN(int(perturbSize)*2+1)) - perturbSize
+			delta := int64(rand.IntN(int(perturbSize)*2+1)) - perturbSize
 			nw := int64(conn.Weight) + int64(delta)
 			if nw > 5000 { nw = 5000 }
 			if nw < -5000 { nw = -5000 }
-			conn.Weight = int32(nw)
+			conn.Weight = int64(nw)
 
 			score := evaluate()
 			if score > bestScore {

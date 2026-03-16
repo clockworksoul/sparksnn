@@ -65,7 +65,7 @@ func TestEligibilityDecays(t *testing.T) {
 
 	eligLater := net.Neurons[0].Connections[0].Eligibility
 
-	if eligAfter != 0 && abs32(eligLater) >= abs32(eligAfter) {
+	if eligAfter != 0 && abs64(eligLater) >= abs64(eligAfter) {
 		t.Errorf("eligibility should decay: was %d, now %d", eligAfter, eligLater)
 	}
 }
@@ -105,7 +105,7 @@ func TestSequenceLearning(t *testing.T) {
 		net.Connect(i, i+1, 200)
 	}
 
-	initialWeights := make([]int32, 4)
+	initialWeights := make([]int64, 4)
 	for i := 0; i < 4; i++ {
 		initialWeights[i] = net.Neurons[i].Connections[0].Weight
 	}
@@ -269,10 +269,10 @@ func TestDefaultConfig(t *testing.T) {
 	}
 }
 
-func abs32(v int32) int32 {
+func abs64(v int64) int64 {
 	if v < 0 {
-		if v == bio.MinActivation {
-			return bio.MaxActivation
+		if v == bio.MinWeight {
+			return bio.MaxWeight
 		}
 		return -v
 	}

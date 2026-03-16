@@ -355,7 +355,7 @@ func TestRunPredictiveWithPlasticity(t *testing.T) {
 }
 
 func TestWeightStats(t *testing.T) {
-	weights := []int32{100, 200, 300, 400, 500}
+	weights := []int64{100, 200, 300, 400, 500}
 	mean, stddev := benchmark.WeightStats(weights)
 
 	if mean != 300 {

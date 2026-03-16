@@ -34,7 +34,7 @@ type PlasticityConfig struct {
 
 	// PruneThreshold is the weight magnitude below which a
 	// connection is considered weak and eligible for removal.
-	PruneThreshold int32
+	PruneThreshold int64
 
 	// --- Growth ---
 
@@ -55,7 +55,7 @@ type PlasticityConfig struct {
 
 	// InitialWeight is the starting weight for newly grown
 	// connections.
-	InitialWeight int32
+	InitialWeight int64
 
 	// GrowthCandidates is how many random (source, target) pairs
 	// to evaluate per Remodel call. Limits computational cost for
@@ -225,8 +225,8 @@ func (p *DefaultPlasticity) prune(net *Network) int {
 			if w < 0 {
 				w = -w
 			}
-			if w == math.MinInt32 {
-				// Special case: abs(MinInt32) overflows
+			if w == math.MinInt64 {
+				// Special case: abs(MinInt64) overflows
 				kept = append(kept, conn)
 				continue
 			}

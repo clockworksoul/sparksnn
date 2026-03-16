@@ -239,19 +239,19 @@ func BuildNetwork(
 			w = -w * int64(inhibScale)
 		}
 
-		// Clamp to int32 range
-		if w > math.MaxInt32 {
-			w = math.MaxInt32
+		// Clamp to int64 range (effectively no-op since w is float64→int64)
+		if w > math.MaxInt64 {
+			w = math.MaxInt64
 		}
-		if w < math.MinInt32 {
-			w = math.MinInt32
+		if w < math.MinInt64 {
+			w = math.MinInt64
 		}
 
-		net.Connect(fromIdx, toIdx, int32(w))
+		net.Connect(fromIdx, toIdx, int64(w))
 
 		// Gap junctions are bidirectional
 		if r.Type == "GapJunction" {
-			net.Connect(toIdx, fromIdx, int32(w))
+			net.Connect(toIdx, fromIdx, int64(w))
 		}
 	}
 

@@ -46,11 +46,11 @@ type NetworkAnalysis struct {
 // WeightDist summarizes a weight distribution.
 type WeightDist struct {
 	Count    int
-	Min      int32
-	Max      int32
+	Min      int64
+	Max      int64
 	Mean     float64
 	StdDev   float64
-	Median   int32
+	Median   int64
 	Positive int // count > 0
 	Negative int // count < 0
 	Zero     int // count == 0
@@ -85,8 +85,8 @@ type Path struct {
 	InputIdx      uint32
 	HiddenIdx     uint32
 	OutputIdx     uint32
-	InputHiddenW  int32
-	HiddenOutputW int32
+	InputHiddenW  int64
+	HiddenOutputW int64
 	CombinedScore float64 // product of absolute weights
 }
 
@@ -437,7 +437,7 @@ func neuronLayer(idx uint32, layout Layout) string {
 }
 
 func collectWeightDist(net *bio.Network, layout Layout, which string) WeightDist {
-	var weights []int32
+	var weights []int64
 
 	for i := uint32(0); i < uint32(len(net.Neurons)); i++ {
 		srcLayer := neuronLayer(i, layout)

@@ -60,7 +60,7 @@ func TestMNISTDeepDense(t *testing.T) {
 	for i := inputStart; i < inputEnd; i++ {
 		for h := hidden1Start; h < hidden1End; h++ {
 			wf := (rng.Float64()*2.0 - 1.0) * initWeightMax
-			w := int32(math.Round(wf * intScale))
+			w := int64(math.Round(wf * intScale))
 			if w == 0 {
 				w = 1
 			}
@@ -72,7 +72,7 @@ func TestMNISTDeepDense(t *testing.T) {
 	for h1 := hidden1Start; h1 < hidden1End; h1++ {
 		for h2 := hidden2Start; h2 < hidden2End; h2++ {
 			wf := (rng.Float64()*2.0 - 1.0) * initWeightMax
-			w := int32(math.Round(wf * intScale))
+			w := int64(math.Round(wf * intScale))
 			if w == 0 {
 				w = 1
 			}
@@ -84,7 +84,7 @@ func TestMNISTDeepDense(t *testing.T) {
 	for h2 := hidden2Start; h2 < hidden2End; h2++ {
 		for o := outputStart; o < outputEnd; o++ {
 			wf := (rng.Float64()*2.0 - 1.0) * initWeightMax
-			w := int32(math.Round(wf * intScale))
+			w := int64(math.Round(wf * intScale))
 			if w == 0 {
 				w = 1
 			}

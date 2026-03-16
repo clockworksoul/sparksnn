@@ -12,10 +12,10 @@ const (
 	MinActivation int32 = math.MinInt32 // -2147483648
 
 	// MaxWeight is the maximum connection weight.
-	MaxWeight int32 = math.MaxInt32
+	MaxWeight int64 = math.MaxInt64
 
 	// MinWeight is the minimum connection weight.
-	MinWeight int32 = math.MinInt32
+	MinWeight int64 = math.MinInt64
 )
 
 // Connection represents a directed synaptic connection from one neuron
@@ -29,15 +29,16 @@ type Connection struct {
 
 	// Weight is the signed connection strength. Positive values are
 	// excitatory; negative values are inhibitory. Clamped to
-	// [MinWeight, MaxWeight].
-	Weight int32
+	// [MinWeight, MaxWeight]. Uses int64 to preserve precision when
+	// quantizing from float64 training weights.
+	Weight int64
 
 	// Eligibility is the current eligibility trace for this connection.
 	// Set by STDP timing rules, decayed each tick, and consolidated
 	// into weight changes when a reward signal arrives. Positive =
 	// candidate for strengthening, negative = candidate for weakening.
 	// Zero when no learning activity is pending.
-	Eligibility int32
+	Eligibility int64
 }
 
 // Neuron represents a single biomimetic neuron. It is a simple data
@@ -91,10 +92,26 @@ type Neuron struct {
 	Connections []Connection
 }
 
-// ClampAdd adds a (possibly negative) int32 value to a base int32,
+// ClampAdd adds a (possibly negative) int64 value to a base int64,
+// clamping the result to [MinWeight, MaxWeight] instead of wrapping
+// on overflow. Used for weight and eligibility updates.
+func ClampAdd(base, delta int64) int64 {
+	// Use careful overflow detection since both operands are int64.
+	sum := base + delta
+	// Overflow: positive + positive = negative, or negative + negative = positive
+	if delta > 0 && sum < base {
+		return MaxWeight
+	}
+	if delta < 0 && sum > base {
+		return MinWeight
+	}
+	return sum
+}
+
+// ClampAdd32 adds a (possibly negative) int32 value to a base int32,
 // clamping the result to [MinActivation, MaxActivation] instead of
-// wrapping on overflow. Exported for use by learning rule subpackages.
-func ClampAdd(base, delta int32) int32 {
+// wrapping on overflow. Used for activation updates.
+func ClampAdd32(base, delta int32) int32 {
 	sum := int64(base) + int64(delta)
 	if sum > int64(MaxActivation) {
 		return MaxActivation
@@ -166,7 +183,7 @@ func (n *Neuron) Stimulate(weight int32, now, refractoryPeriod uint32) bool {
 	n.decay(now)
 
 	// Step 2: Summation (clamped)
-	n.Activation = ClampAdd(n.Activation, weight)
+	n.Activation = ClampAdd32(n.Activation, weight)
 
 	// Step 3: Threshold check + refractory period
 	// LastFired == 0 means "never fired" (always eligible).

@@ -129,7 +129,7 @@ func TestXORWithPerturbationRule(t *testing.T) {
 	}
 
 	threshold := int32(500)
-	inputStim := int32(1000)
+	inputStim := int64(1000)
 	ticks := 30
 	rest := 10
 
@@ -155,12 +155,12 @@ func TestXORWithPerturbationRule(t *testing.T) {
 				// Wire network
 				for i := uint32(0); i < 2; i++ {
 					for h := uint32(2); h < uint32(2+hiddenSize); h++ {
-						net.Connect(i, h, int32(rand.IntN(800))+100)
+						net.Connect(i, h, int64(rand.IntN(800))+100)
 					}
 				}
 				for h := uint32(2); h < uint32(2+hiddenSize); h++ {
-					net.Connect(h, outStart, int32(rand.IntN(800))+100)
-					net.Connect(h, outStart+1, int32(rand.IntN(800))+100)
+					net.Connect(h, outStart, int64(rand.IntN(800))+100)
+					net.Connect(h, outStart+1, int64(rand.IntN(800))+100)
 				}
 
 				// Train: present samples, deliver reward via net.Reward()

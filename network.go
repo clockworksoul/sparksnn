@@ -6,7 +6,7 @@ package sparksnn
 // biological signal propagation delay.
 type PendingStimulation struct {
 	Target uint32
-	Weight int32
+	Weight int64
 }
 
 // Network is a collection of neurons stored in a contiguous array.
@@ -88,7 +88,7 @@ func NewNetwork(size uint32, baseline, threshold int32, decayRate uint16, refrac
 
 // Connect adds a directed connection from neuron at index `from` to
 // neuron at index `to` with the given weight.
-func (net *Network) Connect(from, to uint32, weight int32) {
+func (net *Network) Connect(from, to uint32, weight int64) {
 	net.Neurons[from].Connections = append(net.Neurons[from].Connections, Connection{
 		Target: to,
 		Weight: weight,
@@ -156,13 +156,21 @@ func (net *Network) Reward(signal int32) {
 // Stimulate sends an external signal to a specific neuron. If the
 // neuron fires, its downstream targets are queued for the next tick.
 // This is the entry point for injecting input into the network.
-func (net *Network) Stimulate(index uint32, weight int32) {
+func (net *Network) Stimulate(index uint32, weight int64) {
 	if index >= uint32(len(net.Neurons)) {
 		return
 	}
 
 	neuron := &net.Neurons[index]
-	fired := neuron.Stimulate(weight, net.Counter, net.RefractoryPeriod)
+	// Clamp int64 weight to int32 range for activation update
+	w := weight
+	if w > int64(MaxActivation) {
+		w = int64(MaxActivation)
+	}
+	if w < int64(MinActivation) {
+		w = int64(MinActivation)
+	}
+	fired := neuron.Stimulate(int32(w), net.Counter, net.RefractoryPeriod)
 
 	if fired {
 		net.fireIdx(index)
@@ -228,7 +236,7 @@ func (net *Network) Tick() int {
 	accumulated := make(map[uint32]int64)
 	for _, stim := range net.pending {
 		if stim.Target < uint32(len(net.Neurons)) {
-			accumulated[stim.Target] += int64(stim.Weight)
+			accumulated[stim.Target] += stim.Weight
 		}
 	}
 

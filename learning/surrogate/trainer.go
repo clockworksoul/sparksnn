@@ -191,7 +191,7 @@ func (t *Trainer) EnableAdam() {
 // weights and int32 network weights. Set by NewTrainer.
 func (t *Trainer) SetWeightScale(s float64) { t.weightScale = s }
 
-// syncWeightsToNetwork quantizes float64 shadow weights back to int32
+// syncWeightsToNetwork quantizes float64 shadow weights back to int64
 // and writes them to the network, multiplying by weightScale.
 func (t *Trainer) syncWeightsToNetwork() {
 	scale := t.weightScale
@@ -201,12 +201,12 @@ func (t *Trainer) syncWeightsToNetwork() {
 	for i := range t.Net.Neurons {
 		for j := range t.Net.Neurons[i].Connections {
 			w := t.weights[i][j] * scale
-			if w > math.MaxInt32 {
-				w = math.MaxInt32
-			} else if w < math.MinInt32 {
-				w = math.MinInt32
+			if w > math.MaxInt64 {
+				w = math.MaxInt64
+			} else if w < math.MinInt64 {
+				w = math.MinInt64
 			}
-			t.Net.Neurons[i].Connections[j].Weight = int32(math.Round(w))
+			t.Net.Neurons[i].Connections[j].Weight = int64(math.Round(w))
 		}
 	}
 }

@@ -59,7 +59,7 @@ func TestMNISTInt32Verification(t *testing.T) {
 				continue
 			}
 			wf := (rng.Float64()*2.0 - 1.0) * initWeightMax
-			w := int32(math.Round(wf * intScale))
+			w := int64(math.Round(wf * intScale))
 			if w == 0 {
 				w = 1
 			}
@@ -74,7 +74,7 @@ func TestMNISTInt32Verification(t *testing.T) {
 				continue
 			}
 			wf := (rng.Float64()*2.0 - 1.0) * initWeightMax
-			w := int32(math.Round(wf * intScale))
+			w := int64(math.Round(wf * intScale))
 			if w == 0 {
 				w = 1
 			}
@@ -180,7 +180,7 @@ func TestMNISTInt32Verification(t *testing.T) {
 		for step := 0; step < cfg.NumSteps; step++ {
 			for i := 0; i < numInput; i++ {
 				if inputValues[i] > 0.01 {
-					w := int32(inputValues[i] * intInputWeight)
+					w := int64(inputValues[i] * intInputWeight)
 					if w > 0 {
 						net.Stimulate(inputStart+uint32(i), w)
 					}

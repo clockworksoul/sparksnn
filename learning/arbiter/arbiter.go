@@ -238,12 +238,12 @@ func (r *Rule) StrengthenActive(net *bio.Network, correctClass int, spikeCounts 
 	window := r.Config.ArbiterWindow
 	correctOutput := r.outputStart + uint32(correctClass)
 
-	strength := r.Config.DepressionStrength
+	strength := int64(r.Config.DepressionStrength)
 	ratio := r.Config.StrengtheningRatio
 	if ratio <= 0 {
 		ratio = 1.0
 	}
-	strengthenDelta := int32(float64(strength) * ratio)
+	strengthenDelta := int64(float64(strength) * ratio)
 	if strengthenDelta == 0 {
 		strengthenDelta = 1
 	}
@@ -308,9 +308,9 @@ func (r *Rule) StrengthenActive(net *bio.Network, correctClass int, spikeCounts 
 					continue
 				}
 				if conn.Target == correctOutput {
-					correctScore += int64(conn.Weight)
+					correctScore += conn.Weight
 				} else {
-					wrongScore += int64(conn.Weight)
+					wrongScore += conn.Weight
 				}
 			}
 
@@ -397,12 +397,12 @@ func (r *Rule) strengthenCorrectOnError(net *bio.Network, correctClass int) {
 	window := r.Config.ArbiterWindow
 	correctOutput := r.outputStart + uint32(correctClass)
 
-	strength := r.Config.DepressionStrength
+	strength := int64(r.Config.DepressionStrength)
 	ratio := r.Config.StrengtheningRatio
 	if ratio <= 0 {
 		ratio = 1.0
 	}
-	strengthenDelta := int32(float64(strength) * ratio)
+	strengthenDelta := int64(float64(strength) * ratio)
 	if strengthenDelta == 0 {
 		strengthenDelta = 1
 	}
@@ -477,7 +477,7 @@ func (r *Rule) isArbiter(idx uint32) bool {
 func (r *Rule) applyErrorDepression(net *bio.Network, correctClass int, spikeCounts []int) {
 	tick := net.Counter
 	window := r.Config.ArbiterWindow
-	strength := r.Config.DepressionStrength
+	strength := int64(r.Config.DepressionStrength)
 	correctOutput := r.outputStart + uint32(correctClass)
 
 	mult := r.Config.Multiplicative
@@ -522,7 +522,7 @@ func (r *Rule) applyErrorDepression(net *bio.Network, correctClass int, spikeCou
 					delta := r.multDelta(conn.Weight, rate)
 					conn.Weight = bio.ClampAdd(conn.Weight, -delta)
 				} else {
-					conn.Weight = bio.ClampAdd(conn.Weight, -strength)
+					conn.Weight = bio.ClampAdd(conn.Weight, -int64(strength))
 				}
 				r.clampWeight(conn)
 				r.floorWeight(conn)
@@ -550,9 +550,9 @@ func (r *Rule) applyErrorDepression(net *bio.Network, correctClass int, spikeCou
 					continue
 				}
 				if conn.Target == correctOutput {
-					correctScore += int64(conn.Weight)
+					correctScore += conn.Weight
 				} else {
-					wrongScore += int64(conn.Weight)
+					wrongScore += conn.Weight
 				}
 			}
 
@@ -609,7 +609,7 @@ func (r *Rule) applyErrorDepression(net *bio.Network, correctClass int, spikeCou
 func (r *Rule) applyTargetedCorrection(net *bio.Network, correctClass int, spikeCounts []int) {
 	tick := net.Counter
 	window := r.Config.ArbiterWindow
-	strength := r.Config.DepressionStrength
+	strength := int64(r.Config.DepressionStrength)
 	correctOutput := r.outputStart + uint32(correctClass)
 
 	// Strengthening is scaled relative to depression
@@ -617,7 +617,7 @@ func (r *Rule) applyTargetedCorrection(net *bio.Network, correctClass int, spike
 	if ratio <= 0 {
 		ratio = 1.0
 	}
-	strengthenDelta := int32(float64(strength) * ratio)
+	strengthenDelta := int64(float64(strength) * ratio)
 	if strengthenDelta == 0 {
 		strengthenDelta = strength
 	}
@@ -665,7 +665,7 @@ func (r *Rule) applyTargetedCorrection(net *bio.Network, correctClass int, spike
 						delta := r.multDelta(conn.Weight, rate)
 						conn.Weight = bio.ClampAdd(conn.Weight, -delta)
 					} else {
-						conn.Weight = bio.ClampAdd(conn.Weight, -strength)
+						conn.Weight = bio.ClampAdd(conn.Weight, -int64(strength))
 					}
 				}
 
@@ -697,9 +697,9 @@ func (r *Rule) applyTargetedCorrection(net *bio.Network, correctClass int, spike
 					continue
 				}
 				if conn.Target == correctOutput {
-					correctScore += int64(conn.Weight)
+					correctScore += conn.Weight
 				} else {
-					wrongScore += int64(conn.Weight)
+					wrongScore += conn.Weight
 				}
 			}
 
@@ -750,8 +750,8 @@ func (r *Rule) applyTargetedCorrection(net *bio.Network, correctClass int, spike
 // multDelta computes a proportional weight change: |weight| * rate,
 // with a minimum of 1 so that even tiny weights can still move.
 // Always returns a positive value — caller decides the sign.
-func (r *Rule) multDelta(weight int32, rate float64) int32 {
-	absW := int64(weight)
+func (r *Rule) multDelta(weight int64, rate float64) int64 {
+	absW := weight
 	if absW < 0 {
 		absW = -absW
 	}
@@ -759,7 +759,7 @@ func (r *Rule) multDelta(weight int32, rate float64) int32 {
 	if absW < 10 {
 		absW = 10
 	}
-	delta := int32(float64(absW) * rate)
+	delta := int64(float64(absW) * rate)
 	if delta < 1 {
 		delta = 1
 	}
@@ -768,7 +768,7 @@ func (r *Rule) multDelta(weight int32, rate float64) int32 {
 
 // floorWeight enforces MinWeightMagnitude bounds.
 func (r *Rule) floorWeight(conn *bio.Connection) {
-	minMag := r.Config.MinWeightMagnitude
+	minMag := int64(r.Config.MinWeightMagnitude)
 	if minMag <= 0 {
 		return
 	}
@@ -804,7 +804,7 @@ func (r *Rule) OnSpikePropagation(conn *bio.Connection, preFiredAt, postLastFire
 	}
 
 	dt := preFiredAt - postLastFired
-	delta := stdpWindow(dt, r.Config.AMinus, r.Config.TauMinus)
+	delta := int64(stdpWindow(dt, r.Config.AMinus, r.Config.TauMinus))
 	if delta != 0 {
 		conn.Weight = bio.ClampAdd(conn.Weight, -delta)
 		r.clampWeight(conn)
@@ -830,7 +830,7 @@ func (r *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 		}
 
 		dt := postFiredAt - preFiredAt
-		delta := stdpWindow(dt, r.Config.APlus, r.Config.TauPlus)
+		delta := int64(stdpWindow(dt, r.Config.APlus, r.Config.TauPlus))
 		if delta != 0 {
 			in.Conn.Weight = bio.ClampAdd(in.Conn.Weight, delta)
 			r.clampWeight(in.Conn)
@@ -848,7 +848,7 @@ func (r *Rule) Maintain(net *bio.Network, tick uint32) {}
 
 // clampWeight enforces MaxWeightMagnitude bounds.
 func (r *Rule) clampWeight(conn *bio.Connection) {
-	maxMag := r.Config.MaxWeightMagnitude
+	maxMag := int64(r.Config.MaxWeightMagnitude)
 	if maxMag <= 0 {
 		return
 	}

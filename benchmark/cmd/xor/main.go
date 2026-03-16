@@ -150,14 +150,14 @@ func runWithReward(rule bio.LearningRule, name string, cfg xor.NetworkConfig) *b
 // This is the key mechanism for discovering inhibitory connections.
 func applyAsymmetricUpdate(net *bio.Network, layout xor.Layout, reward int32, window uint32) {
 	now := net.Counter
-	maxW := int32(5000) // cap weight magnitude
+	maxW := int64(5000) // cap weight magnitude
 
 	isRecentlyActive := func(idx uint32) bool {
 		n := &net.Neurons[idx]
 		return n.LastFired > 0 && now-n.LastFired < window
 	}
 
-	clampWeight := func(w int32) int32 {
+	clampWeight := func(w int64) int64 {
 		if w > maxW {
 			return maxW
 		}
@@ -178,9 +178,9 @@ func applyAsymmetricUpdate(net *bio.Network, layout xor.Layout, reward int32, wi
 			tgtActive := isRecentlyActive(conn.Target)
 
 			if srcActive && tgtActive {
-				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, reward/4))
+				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, int64(reward)/4))
 			} else if srcActive && !tgtActive {
-				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, -reward/8))
+				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, -int64(reward)/8))
 			}
 		}
 	}
@@ -196,9 +196,9 @@ func applyAsymmetricUpdate(net *bio.Network, layout xor.Layout, reward int32, wi
 			tgtActive := isRecentlyActive(conn.Target)
 
 			if srcActive && tgtActive {
-				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, reward/4))
+				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, int64(reward)/4))
 			} else if srcActive && !tgtActive {
-				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, -reward/8))
+				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, -int64(reward)/8))
 			}
 		}
 	}

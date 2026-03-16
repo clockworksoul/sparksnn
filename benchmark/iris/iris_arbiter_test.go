@@ -100,7 +100,7 @@ func TestIrisArbiter(t *testing.T) {
 	// Wire up: Input → Hidden (random positive weights)
 	for i := layout.InputStart; i < layout.InputEnd; i++ {
 		for h := layout.HiddenStart; h < layout.HiddenEnd; h++ {
-			w := int32(rand.IntN(int(cfg.InitWeightMax))) + 1
+			w := int64(rand.IntN(int(cfg.InitWeightMax))) + 1
 			net.Connect(i, h, w)
 		}
 	}
@@ -108,7 +108,7 @@ func TestIrisArbiter(t *testing.T) {
 	// Hidden → Output (random positive weights)
 	for h := layout.HiddenStart; h < layout.HiddenEnd; h++ {
 		for o := layout.OutputStart; o < layout.OutputEnd; o++ {
-			w := int32(rand.IntN(int(cfg.InitWeightMax))) + 1
+			w := int64(rand.IntN(int(cfg.InitWeightMax))) + 1
 			net.Connect(h, o, w)
 		}
 	}

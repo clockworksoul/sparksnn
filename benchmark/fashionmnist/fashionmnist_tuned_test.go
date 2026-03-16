@@ -56,7 +56,7 @@ func TestFashionMNISTTuned(t *testing.T) {
 				continue
 			}
 			wf := (rng.Float64()*2.0 - 1.0) * initWeightMax
-			w := int32(math.Round(wf * intScale))
+			w := int64(math.Round(wf * intScale))
 			if w == 0 {
 				w = 1
 			}
@@ -71,7 +71,7 @@ func TestFashionMNISTTuned(t *testing.T) {
 				continue
 			}
 			wf := (rng.Float64()*2.0 - 1.0) * initWeightMax
-			w := int32(math.Round(wf * intScale))
+			w := int64(math.Round(wf * intScale))
 			if w == 0 {
 				w = 1
 			}

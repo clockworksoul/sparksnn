@@ -122,7 +122,7 @@ func (s *Rule) OnSpikePropagation(conn *bio.Connection, preFiredAt, postLastFire
 	dt := preFiredAt - postLastFired
 	delta := Window(dt, s.Config.AMinus, s.Config.TauMinus)
 	if delta != 0 {
-		conn.Eligibility = bio.ClampAdd(conn.Eligibility, -delta)
+		conn.Eligibility = bio.ClampAdd(conn.Eligibility, -int64(delta))
 	}
 }
 
@@ -149,7 +149,7 @@ func (s *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 		dt := postFiredAt - preFiredAt
 		delta := Window(dt, s.Config.APlus, s.Config.TauPlus)
 		if delta != 0 {
-			in.Conn.Eligibility = bio.ClampAdd(in.Conn.Eligibility, delta)
+			in.Conn.Eligibility = bio.ClampAdd(in.Conn.Eligibility, int64(delta))
 		}
 	}
 }
@@ -161,7 +161,7 @@ func (s *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {
 		return
 	}
 
-	maxMag := s.Config.MaxWeightMagnitude
+	maxMag := int64(s.Config.MaxWeightMagnitude)
 	if maxMag == 0 {
 		maxMag = bio.MaxWeight
 	}
@@ -189,7 +189,7 @@ func (s *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {
 					sign = -1
 				}
 
-				absWeight := int64(conn.Weight)
+				absWeight := conn.Weight
 				if absWeight < 0 {
 					absWeight = -absWeight
 				}
@@ -201,17 +201,10 @@ func (s *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {
 				delta = sign * int64(float64(absWeight)*rate)
 			} else {
 				// Additive (original behavior)
-				delta = (int64(reward) * int64(conn.Eligibility)) >> 8
+				delta = (int64(reward) * conn.Eligibility) >> 8
 			}
 
-			if delta > int64(bio.MaxWeight) {
-				delta = int64(bio.MaxWeight)
-			}
-			if delta < int64(bio.MinWeight) {
-				delta = int64(bio.MinWeight)
-			}
-
-			conn.Weight = bio.ClampAdd(conn.Weight, int32(delta))
+			conn.Weight = bio.ClampAdd(conn.Weight, delta)
 
 			if maxMag > 0 && maxMag < bio.MaxWeight {
 				if conn.Weight > maxMag {
@@ -241,8 +234,7 @@ func (s *Rule) Maintain(net *bio.Network, tick uint32) {
 				continue
 			}
 
-			decayed := (int64(conn.Eligibility) * int64(rate)) >> 16
-			conn.Eligibility = int32(decayed)
+			conn.Eligibility = (conn.Eligibility * int64(rate)) >> 16
 		}
 	}
 }

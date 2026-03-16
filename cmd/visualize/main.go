@@ -235,7 +235,7 @@ func main() {
 		if !ok {
 			log.Fatalf("unknown neuron: %s", name)
 		}
-		net.Stimulate(idx, int32(*stimWeight))
+		net.Stimulate(idx, int64(*stimWeight))
 	}
 
 	// Run simulation, capture each tick

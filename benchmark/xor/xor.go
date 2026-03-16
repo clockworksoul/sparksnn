@@ -60,10 +60,10 @@ type NetworkConfig struct {
 	RestTicks int
 
 	// InputWeight is the stimulation weight for active inputs.
-	InputWeight int32
+	InputWeight int64
 
 	// InhibWeight is the lateral inhibition weight (negative).
-	InhibWeight int32
+	InhibWeight int64
 
 	// Threshold for hidden and output neurons.
 	Threshold int32
@@ -76,7 +76,7 @@ type NetworkConfig struct {
 
 	// InitWeightMax is the upper bound for random initial weights
 	// on learnable connections.
-	InitWeightMax int32
+	InitWeightMax int64
 
 	// InitialDensity controls what fraction of possible learnable
 	// connections are created at startup. 1.0 = fully connected,
@@ -97,7 +97,7 @@ type NetworkConfig struct {
 	NoiseProbability float64
 
 	// NoiseWeight is the stimulation weight for noise events.
-	NoiseWeight int32
+	NoiseWeight int64
 
 	// DeterministicInput uses fixed stimulation every tick instead
 	// of probabilistic rate coding. Cleaner signal for small problems.
@@ -178,7 +178,7 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 			if cfg.InitialDensity < 1.0 && rand.Float64() > cfg.InitialDensity {
 				continue // skip this connection
 			}
-			w := int32(rand.IntN(int(cfg.InitWeightMax))) + 1
+			w := int64(rand.IntN(int(cfg.InitWeightMax))) + 1
 			net.Connect(i, h, w)
 		}
 	}
@@ -211,7 +211,7 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 			if cfg.InitialDensity < 1.0 && rand.Float64() > cfg.InitialDensity {
 				continue
 			}
-			w := int32(rand.IntN(int(cfg.InitWeightMax))) + 1
+			w := int64(rand.IntN(int(cfg.InitWeightMax))) + 1
 			net.Connect(h, o, w)
 		}
 	}
@@ -342,8 +342,8 @@ func Evaluate(net *bio.Network, layout Layout, task benchmark.Task, cfg NetworkC
 
 // CollectWeights gathers all learnable connection weights from
 // the network (input→hidden and hidden→output connections).
-func CollectWeights(net *bio.Network, layout Layout) []int32 {
-	var weights []int32
+func CollectWeights(net *bio.Network, layout Layout) []int64 {
+	var weights []int64
 
 	// Input → Hidden weights
 	for i := layout.InputStart; i < layout.InputEnd; i++ {

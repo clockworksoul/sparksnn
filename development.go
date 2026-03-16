@@ -82,8 +82,8 @@ type ConnectionRule struct {
 
 	// InitWeightMin and InitWeightMax define the range for random
 	// initial weights on created connections.
-	InitWeightMin int32
-	InitWeightMax int32
+	InitWeightMin int64
+	InitWeightMax int64
 }
 
 // DevParams holds global parameters for the development phase.
@@ -213,7 +213,7 @@ func (d *Development) Wire(rule ConnectionRule) int {
 				weightRange := rule.InitWeightMax - rule.InitWeightMin
 				w := rule.InitWeightMin
 				if weightRange > 0 {
-					w += int32(d.rng.IntN(int(weightRange + 1)))
+					w += int64(d.rng.IntN(int(weightRange + 1)))
 				}
 				d.Net.Connect(i, j, w)
 				created++

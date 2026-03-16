@@ -86,7 +86,7 @@ type Rule struct {
 	hasLastReward  bool
 	pendingNeuron  int // neuron index of perturbed connection
 	pendingConn    int // connection index within that neuron
-	oldWeight      int32
+	oldWeight      int64
 	hasPending     bool
 	noImproveCount int
 	perturbSize    int32
@@ -167,12 +167,12 @@ func (r *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {
 	r.batchReward = 0
 	r.batchCount = 0
 
-	maxMag := r.Config.MaxWeightMagnitude
+	maxMag := int64(r.Config.MaxWeightMagnitude)
 	if maxMag == 0 {
 		maxMag = bio.MaxWeight
 	}
 
-	clamp := func(w int32) int32 {
+	clamp := func(w int64) int64 {
 		if maxMag > 0 && maxMag < bio.MaxWeight {
 			if w > maxMag {
 				return maxMag
@@ -219,7 +219,7 @@ func (r *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {
 	r.oldWeight = conn.Weight
 	r.hasPending = true
 
-	delta := r.rng.Int32N(r.perturbSize*2+1) - r.perturbSize
+	delta := int64(r.rng.Int32N(r.perturbSize*2+1) - r.perturbSize)
 	conn.Weight = clamp(bio.ClampAdd(conn.Weight, delta))
 
 	r.lastReward = batchTotal

@@ -87,7 +87,7 @@ func Window(dt uint32, amplitude int32, tau uint32) int32 {
 
 // clampWeight enforces MaxWeightMagnitude on a connection.
 func (s *Rule) clampWeight(conn *bio.Connection) {
-	maxMag := s.Config.MaxWeightMagnitude
+	maxMag := int64(s.Config.MaxWeightMagnitude)
 	if maxMag > 0 && maxMag < bio.MaxWeight {
 		if conn.Weight > maxMag {
 			conn.Weight = maxMag
@@ -110,7 +110,7 @@ func (s *Rule) OnSpikePropagation(conn *bio.Connection, preFiredAt, postLastFire
 	dt := preFiredAt - postLastFired
 	delta := Window(dt, s.Config.AMinus, s.Config.TauMinus)
 	if delta != 0 {
-		conn.Weight = bio.ClampAdd(conn.Weight, -delta)
+		conn.Weight = bio.ClampAdd(conn.Weight, -int64(delta))
 		s.clampWeight(conn)
 	}
 }
@@ -138,7 +138,7 @@ func (s *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 		dt := postFiredAt - preFiredAt
 		delta := Window(dt, s.Config.APlus, s.Config.TauPlus)
 		if delta != 0 {
-			in.Conn.Weight = bio.ClampAdd(in.Conn.Weight, delta)
+			in.Conn.Weight = bio.ClampAdd(in.Conn.Weight, int64(delta))
 			s.clampWeight(in.Conn)
 		}
 	}

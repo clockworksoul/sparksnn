@@ -155,13 +155,13 @@ type NetworkConfig struct {
 	HiddenSize         int
 	TicksPerSample     int
 	RestTicks          int
-	InputWeight        int32
+	InputWeight        int64
 	Threshold          int32
 	DecayRate          uint16
 	RefractoryPeriod   uint32
-	InitWeightMax      int32
+	InitWeightMax      int64
 	NoiseProbability   float64
-	NoiseWeight        int32
+	NoiseWeight        int64
 	DeterministicInput bool
 
 	// PopulationSize is the number of input neurons per feature.
@@ -180,7 +180,7 @@ type NetworkConfig struct {
 	// credit assignment: only the winning output's connections get
 	// causal timing traces.
 	// 0 = no inhibition (default). Typical value: -1000 to -3000.
-	LateralInhibition int32
+	LateralInhibition int64
 
 	// PopulationSigma controls the width of each tuning curve.
 	// Expressed in the [0, 255] feature space. Smaller = sharper
@@ -279,7 +279,7 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 	// Input → Hidden (learnable, random positive weights)
 	for i := layout.InputStart; i < layout.InputEnd; i++ {
 		for h := layout.HiddenStart; h < layout.HiddenEnd; h++ {
-			w := int32(rand.IntN(int(cfg.InitWeightMax))) + 1
+			w := int64(rand.IntN(int(cfg.InitWeightMax))) + 1
 			net.Connect(i, h, w)
 		}
 	}
@@ -287,7 +287,7 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 	// Hidden → Output (learnable, random positive weights)
 	for h := layout.HiddenStart; h < layout.HiddenEnd; h++ {
 		for o := layout.OutputStart; o < layout.OutputEnd; o++ {
-			w := int32(rand.IntN(int(cfg.InitWeightMax))) + 1
+			w := int64(rand.IntN(int(cfg.InitWeightMax))) + 1
 			net.Connect(h, o, w)
 		}
 	}
@@ -326,7 +326,7 @@ func PresentSample(net *bio.Network, layout Layout, sample benchmark.Sample, cfg
 	// For population coding, neuron (feature*pop + k) is tuned to
 	// center = k * 255 / (pop-1) for that feature.
 	numInputs := 4 * pop
-	inputWeights := make([]int32, numInputs)
+	inputWeights := make([]int64, numInputs)
 
 	for f := 0; f < 4; f++ {
 		val := float64(sample.Inputs[f])
@@ -336,13 +336,13 @@ func PresentSample(net *bio.Network, layout Layout, sample benchmark.Sample, cfg
 			if pop == 1 {
 				// Original behavior: amplitude coding
 				if val > 0 {
-					inputWeights[idx] = int32(float64(cfg.InputWeight) * val / 255.0)
+					inputWeights[idx] = int64(float64(cfg.InputWeight) * val / 255.0)
 				}
 			} else {
 				// Population coding: Gaussian tuning curve
 				center := 255.0 * float64(k) / float64(pop-1)
 				response := cfg.tuningResponse(center, val)
-				w := int32(float64(cfg.InputWeight) * response)
+				w := int64(float64(cfg.InputWeight) * response)
 				if w > 0 {
 					inputWeights[idx] = w
 				}
@@ -465,8 +465,8 @@ func Evaluate(net *bio.Network, layout Layout, task *Task, cfg NetworkConfig) (a
 
 // CollectWeights gathers all learnable weights (input→hidden and
 // hidden→output).
-func CollectWeights(net *bio.Network, layout Layout) []int32 {
-	var weights []int32
+func CollectWeights(net *bio.Network, layout Layout) []int64 {
+	var weights []int64
 
 	for i := layout.InputStart; i < layout.InputEnd; i++ {
 		for _, conn := range net.Neurons[i].Connections {

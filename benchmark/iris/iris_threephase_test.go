@@ -97,7 +97,7 @@ func TestIrisThreePhase(t *testing.T) {
 			if rand.Float64() > 0.5 {
 				continue
 			}
-			w := int32(rand.IntN(int(cfg.InitWeightMax)*2)) - cfg.InitWeightMax
+			w := int64(rand.IntN(int(cfg.InitWeightMax)*2)) - cfg.InitWeightMax
 			if w == 0 {
 				w = 1
 			}
@@ -112,7 +112,7 @@ func TestIrisThreePhase(t *testing.T) {
 			if rand.Float64() > 0.7 {
 				continue
 			}
-			w := int32(rand.IntN(int(cfg.InitWeightMax)*2)) - cfg.InitWeightMax
+			w := int64(rand.IntN(int(cfg.InitWeightMax)*2)) - cfg.InitWeightMax
 			if w == 0 {
 				w = 1
 			}

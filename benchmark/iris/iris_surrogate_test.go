@@ -49,14 +49,15 @@ func TestIrisSurrogate(t *testing.T) {
 	outputStart := uint32(numInput + numHidden)
 	outputEnd := uint32(total)
 
-	// Sparse mixed-sign connectivity
+	// Sparse mixed-sign connectivity (seeded for determinism)
+	rng := rand.New(rand.NewPCG(42, 42^0xbeef))
 	for i := inputStart; i < inputEnd; i++ {
 		for h := hiddenStart; h < hiddenEnd; h++ {
-			if rand.Float64() > 0.5 {
+			if rng.Float64() > 0.5 {
 				continue
 			}
-			wf := (rand.Float64()*2.0 - 1.0) * initWeightMax
-			w := int32(math.Round(wf * intScale))
+			wf := (rng.Float64()*2.0 - 1.0) * initWeightMax
+			w := int64(math.Round(wf * intScale))
 			if w == 0 {
 				w = 1
 			}
@@ -66,11 +67,11 @@ func TestIrisSurrogate(t *testing.T) {
 
 	for h := hiddenStart; h < hiddenEnd; h++ {
 		for o := outputStart; o < outputEnd; o++ {
-			if rand.Float64() > 0.7 {
+			if rng.Float64() > 0.7 {
 				continue
 			}
-			wf := (rand.Float64()*2.0 - 1.0) * initWeightMax
-			w := int32(math.Round(wf * intScale))
+			wf := (rng.Float64()*2.0 - 1.0) * initWeightMax
+			w := int64(math.Round(wf * intScale))
 			if w == 0 {
 				w = 1
 			}
@@ -150,7 +151,7 @@ func TestIrisSurrogate(t *testing.T) {
 				intInputWeight := inputWeight * intScale
 				for i := 0; i < numInput; i++ {
 					if inputValues[i] > 0.01 {
-						w := int32(inputValues[i] * intInputWeight)
+						w := int64(inputValues[i] * intInputWeight)
 						if w > 0 {
 							net.Stimulate(inputStart+uint32(i), w)
 						}
@@ -224,7 +225,7 @@ func TestIrisSurrogate(t *testing.T) {
 		for step := 0; step < cfg.NumSteps; step++ {
 			for i := 0; i < numInput; i++ {
 				if inputValues[i] > 0.01 {
-					w := int32(inputValues[i] * intInputWeight)
+					w := int64(inputValues[i] * intInputWeight)
 					if w > 0 {
 						net.Stimulate(inputStart+uint32(i), w)
 					}
