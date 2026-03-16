@@ -38,7 +38,7 @@ func TestIrisSurrogate(t *testing.T) {
 	intScale := float64(1 << 30) // 1073741824
 
 	// Network uses scaled int32 weights for inference
-	intThreshold := int32(threshold * intScale)
+	intThreshold := int64(threshold * intScale)
 	net := bio.NewNetwork(uint32(total), 0, intThreshold, decayRate, refractoryPeriod)
 	net.LearningRule = bio.NoOpLearning{}
 

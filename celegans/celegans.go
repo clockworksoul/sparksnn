@@ -107,8 +107,8 @@ type Params struct {
 	// Values < WeightScale attenuate them. 0 means use WeightScale.
 	GapJunctionScale int
 
-	Baseline         int32
-	Threshold        int32
+	Baseline         int64
+	Threshold        int64
 	DecayRate        uint16
 	RefractoryPeriod uint32
 
@@ -117,7 +117,7 @@ type Params struct {
 	// (the neuron goes below resting potential after firing), which
 	// is biologically accurate and critical for preventing runaway
 	// excitation.
-	PostFireReset int32
+	PostFireReset int64
 
 	// UsePostFireReset indicates whether PostFireReset should be
 	// used (since 0 is a valid reset value).

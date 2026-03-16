@@ -104,13 +104,13 @@ type PlasticityConfig struct {
 
 	// HomeostaticStep is how much to adjust the threshold per
 	// Remodel call for dead or overactive neurons.
-	HomeostaticStep int32
+	HomeostaticStep int64
 
 	// MinThreshold is the floor for threshold adjustment.
-	MinThreshold int32
+	MinThreshold int64
 
 	// MaxThreshold is the ceiling for threshold adjustment.
-	MaxThreshold int32
+	MaxThreshold int64
 }
 
 // DefaultPlasticityConfig returns reasonable defaults for structural

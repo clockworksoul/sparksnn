@@ -36,7 +36,7 @@ type Network struct {
 	// PostFireReset is the activation level a neuron is set to after
 	// firing. Models hyperpolarization when negative. Only used when
 	// UsePostFireReset is true; otherwise neurons reset to Baseline.
-	PostFireReset int32
+	PostFireReset int64
 
 	// UsePostFireReset enables the PostFireReset value instead of
 	// resetting to Baseline after firing.
@@ -76,7 +76,7 @@ type Network struct {
 // NewNetwork creates a network with the given number of neurons.
 // All neurons are initialized to the same baseline, threshold, and
 // zero activation.
-func NewNetwork(size uint32, baseline, threshold int32, decayRate uint16, refractoryPeriod uint32) *Network {
+func NewNetwork(size uint32, baseline, threshold int64, decayRate uint16, refractoryPeriod uint32) *Network {
 	neurons := make([]Neuron, size)
 	for i := range neurons {
 		neurons[i] = Neuron{
@@ -171,15 +171,7 @@ func (net *Network) Stimulate(index uint32, weight int64) {
 	}
 
 	neuron := &net.Neurons[index]
-	// Clamp int64 weight to int32 range for activation update
-	w := weight
-	if w > int64(MaxActivation) {
-		w = int64(MaxActivation)
-	}
-	if w < int64(MinActivation) {
-		w = int64(MinActivation)
-	}
-	fired := neuron.Stimulate(int32(w), net.Counter, net.RefractoryPeriod)
+	fired := neuron.Stimulate(weight, net.Counter, net.RefractoryPeriod)
 
 	if fired {
 		net.fireIdx(index)
@@ -260,17 +252,9 @@ func (net *Network) Tick() int {
 	fired := 0
 	for _, target := range net.accumDirty {
 		totalWeight := net.accumBuf[target]
-		// Clamp accumulated weight to int32 range
-		w := totalWeight
-		if w > int64(MaxActivation) {
-			w = int64(MaxActivation)
-		}
-		if w < int64(MinActivation) {
-			w = int64(MinActivation)
-		}
 
 		neuron := &net.Neurons[target]
-		if neuron.Stimulate(int32(w), net.Counter, net.RefractoryPeriod) {
+		if neuron.Stimulate(totalWeight, net.Counter, net.RefractoryPeriod) {
 			net.fireIdx(target)
 			fired++
 		}
@@ -342,7 +326,7 @@ func (net *Network) Pending() int {
 // Note: this does NOT apply decay. It reads raw stored activation
 // values. For accurate readings, consider calling at a consistent
 // point relative to stimulation.
-func (net *Network) ActiveNeurons(above int32) []uint32 {
+func (net *Network) ActiveNeurons(above int64) []uint32 {
 	var active []uint32
 	for i, n := range net.Neurons {
 		if n.Activation > above {

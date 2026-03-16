@@ -45,15 +45,15 @@ type ConnInfo struct {
 
 type TickSnapshot struct {
 	Tick        int            `json:"tick"`
-	Activations []int32        `json:"activations"`
+	Activations []int64        `json:"activations"`
 	Fired       []int          `json:"fired"` // indices of neurons that fired
 	TotalFired  int            `json:"totalFired"`
 	Pending     int            `json:"pending"`
 }
 
 type ParamInfo struct {
-	Threshold      int32  `json:"threshold"`
-	Baseline       int32  `json:"baseline"`
+	Threshold      int64  `json:"threshold"`
+	Baseline       int64  `json:"baseline"`
 	RefractoryPeriod uint32 `json:"refractoryPeriod"`
 }
 
@@ -244,7 +244,7 @@ func main() {
 	// Tick 0: initial state after stimulus
 	snap0 := TickSnapshot{
 		Tick:        0,
-		Activations: make([]int32, len(net.Neurons)),
+		Activations: make([]int64, len(net.Neurons)),
 		Pending:     net.Pending(),
 	}
 	for i, n := range net.Neurons {
@@ -264,7 +264,7 @@ func main() {
 
 		snap := TickSnapshot{
 			Tick:        t + 1,
-			Activations: make([]int32, len(net.Neurons)),
+			Activations: make([]int64, len(net.Neurons)),
 			TotalFired:  fired,
 			Pending:     net.Pending(),
 		}

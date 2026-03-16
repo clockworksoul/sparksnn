@@ -128,7 +128,7 @@ func TestXORWithPerturbationRule(t *testing.T) {
 		{true, true, 0},
 	}
 
-	threshold := int32(500)
+	threshold := int64(500)
 	inputStim := int64(1000)
 	ticks := 30
 	rest := 10

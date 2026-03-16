@@ -66,7 +66,7 @@ type NetworkConfig struct {
 	InhibWeight int64
 
 	// Threshold for hidden and output neurons.
-	Threshold int32
+	Threshold int64
 
 	// DecayRate for all neurons (fixed-point, /65536).
 	DecayRate uint16

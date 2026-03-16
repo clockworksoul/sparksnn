@@ -6,10 +6,10 @@ import "math"
 
 const (
 	// MaxActivation is the maximum activation level a neuron can reach.
-	MaxActivation int32 = math.MaxInt32 // 2147483647
+	MaxActivation int64 = math.MaxInt64
 
 	// MinActivation is the minimum activation level a neuron can reach.
-	MinActivation int32 = math.MinInt32 // -2147483648
+	MinActivation int64 = math.MinInt64
 
 	// MaxWeight is the maximum connection weight.
 	MaxWeight int64 = math.MaxInt64
@@ -53,17 +53,17 @@ type Neuron struct {
 	// Activation is the current activation level. Clamped to
 	// [MinActivation, MaxActivation]. Decays toward Baseline when
 	// the neuron is not being stimulated.
-	Activation int32
+	Activation int64
 
 	// Baseline is the resting activation level. Activation decays
 	// toward this value over time. Same for all neurons in a network
 	// (but stored per-neuron for flexibility).
-	Baseline int32
+	Baseline int64
 
 	// Threshold is the activation level that triggers firing.
 	// When Activation >= Threshold and the refractory period has
 	// elapsed, the neuron fires and propagates to its connections.
-	Threshold int32
+	Threshold int64
 
 	// LastInteraction is the counter value when this neuron was last
 	// stimulated. Used for lazy decay calculation — idle neurons cost
@@ -93,33 +93,19 @@ type Neuron struct {
 }
 
 // ClampAdd adds a (possibly negative) int64 value to a base int64,
-// clamping the result to [MinWeight, MaxWeight] instead of wrapping
-// on overflow. Used for weight and eligibility updates.
+// clamping the result to int64 range instead of wrapping on overflow.
+// Used for both weight/eligibility and activation updates (now both int64).
 func ClampAdd(base, delta int64) int64 {
 	// Use careful overflow detection since both operands are int64.
 	sum := base + delta
 	// Overflow: positive + positive = negative, or negative + negative = positive
 	if delta > 0 && sum < base {
-		return MaxWeight
+		return math.MaxInt64
 	}
 	if delta < 0 && sum > base {
-		return MinWeight
+		return math.MinInt64
 	}
 	return sum
-}
-
-// ClampAdd32 adds a (possibly negative) int32 value to a base int32,
-// clamping the result to [MinActivation, MaxActivation] instead of
-// wrapping on overflow. Used for activation updates.
-func ClampAdd32(base, delta int32) int32 {
-	sum := int64(base) + int64(delta)
-	if sum > int64(MaxActivation) {
-		return MaxActivation
-	}
-	if sum < int64(MinActivation) {
-		return MinActivation
-	}
-	return int32(sum)
 }
 
 // decay calculates how far activation has moved back toward baseline
@@ -135,7 +121,7 @@ func (n *Neuron) decay(now uint32) {
 		return
 	}
 
-	distance := int64(n.Activation) - int64(n.Baseline)
+	distance := n.Activation - n.Baseline
 	if distance == 0 {
 		n.LastInteraction = now
 		return
@@ -147,8 +133,9 @@ func (n *Neuron) decay(now uint32) {
 	// A decayRate of 32768 means 50% retention per tick (fast decay).
 	//
 	// For large elapsed values, we cap to avoid excessive looping.
-	// After ~40 ticks at 50% retention, even int32 values are negligible.
-	if elapsed > 64 {
+	// After ~40 ticks at 50% retention, even int64 values are negligible
+	// (though we could push this higher — 64 ticks at 50% = 2^-64).
+	if elapsed > 128 {
 		n.Activation = n.Baseline
 		n.LastInteraction = now
 		return
@@ -161,7 +148,7 @@ func (n *Neuron) decay(now uint32) {
 		}
 	}
 
-	n.Activation = int32(int64(n.Baseline) + distance)
+	n.Activation = n.Baseline + distance
 	n.LastInteraction = now
 }
 
@@ -178,12 +165,12 @@ func (n *Neuron) decay(now uint32) {
 // fire again until now >= LastFired + refractoryPeriod.
 //
 // Returns true if the neuron fired, false otherwise.
-func (n *Neuron) Stimulate(weight int32, now, refractoryPeriod uint32) bool {
+func (n *Neuron) Stimulate(weight int64, now, refractoryPeriod uint32) bool {
 	// Step 1: Decay
 	n.decay(now)
 
 	// Step 2: Summation (clamped)
-	n.Activation = ClampAdd32(n.Activation, weight)
+	n.Activation = ClampAdd(n.Activation, weight)
 
 	// Step 3: Threshold check + refractory period
 	// LastFired == 0 means "never fired" (always eligible).

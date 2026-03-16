@@ -34,12 +34,12 @@ func TestClampAdd(t *testing.T) {
 	}
 }
 
-func TestClampAdd32(t *testing.T) {
+func TestClampAddActivation(t *testing.T) {
 	tests := []struct {
 		name     string
-		base     int32
-		delta    int32
-		expected int32
+		base     int64
+		delta    int64
+		expected int64
 	}{
 		{"normal positive", 100, 50, 150},
 		{"normal negative", 100, -50, 50},
@@ -54,9 +54,9 @@ func TestClampAdd32(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ClampAdd32(tt.base, tt.delta)
+			got := ClampAdd(tt.base, tt.delta)
 			if got != tt.expected {
-				t.Errorf("ClampAdd32(%d, %d) = %d, want %d",
+				t.Errorf("ClampAdd(%d, %d) = %d, want %d",
 					tt.base, tt.delta, got, tt.expected)
 			}
 		})

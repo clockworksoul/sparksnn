@@ -33,7 +33,7 @@ func TestMNISTActivity(t *testing.T) {
 
 	intScale := float64(1 << 20)
 
-	intThreshold := int32(threshold * intScale)
+	intThreshold := int64(threshold * intScale)
 	net := bio.NewNetwork(uint32(total), 0, intThreshold, decayRate, 3)
 	net.LearningRule = bio.NoOpLearning{}
 

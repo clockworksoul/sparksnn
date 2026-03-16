@@ -28,7 +28,7 @@ func motorActivity(net *biomimetic.Network, nameMap map[string]uint32, prefixes 
 // namedAct holds a neuron name and its activation level.
 type namedAct struct {
 	Name       string
-	Activation int32
+	Activation int64
 }
 
 func neuronsMatchingPrefix(net *biomimetic.Network, nameMap map[string]uint32, prefixes []string) []namedAct {

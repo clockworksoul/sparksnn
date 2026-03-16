@@ -74,8 +74,8 @@ func NewRule(config Config) *Rule {
 
 // predict computes the predicted input for a connection given the
 // post-synaptic neuron's current activation.
-func (p *Rule) predict(postActivation int32, weight int64) int64 {
-	product := int64(postActivation) * weight
+func (p *Rule) predict(postActivation int64, weight int64) int64 {
+	product := postActivation * weight
 	shifted := product >> p.Config.PredictionScale
 	if shifted > bio.MaxWeight {
 		return bio.MaxWeight

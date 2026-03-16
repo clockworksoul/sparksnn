@@ -156,7 +156,7 @@ type NetworkConfig struct {
 	TicksPerSample     int
 	RestTicks          int
 	InputWeight        int64
-	Threshold          int32
+	Threshold          int64
 	DecayRate          uint16
 	RefractoryPeriod   uint32
 	InitWeightMax      int64

@@ -88,8 +88,8 @@ type ConnectionRule struct {
 
 // DevParams holds global parameters for the development phase.
 type DevParams struct {
-	Baseline         int32
-	Threshold        int32
+	Baseline         int64
+	Threshold        int64
 	DecayRate        uint16
 	RefractoryPeriod uint32
 }
