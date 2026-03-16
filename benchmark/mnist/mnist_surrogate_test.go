@@ -5,7 +5,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 	"github.com/clockworksoul/sparksnn/learning/surrogate"
 )
 
@@ -32,14 +32,14 @@ func TestMNISTSurrogate(t *testing.T) {
 	threshold := 1.0
 	decayRate := uint16(50000)
 	beta := float64(decayRate) / 65536.0 // ~0.763
-	inputWeight := 0.5                    // scaled by pixel value
+	inputWeight := 0.5                   // scaled by pixel value
 	initWeightMax := 0.3
 
 	intScale := float64(1 << 20) // 1048576 — more precision, still safe from overflow
 
 	intThreshold := int64(threshold * intScale)
-	net := bio.NewNetwork(uint32(total), 0, intThreshold, decayRate, 3)
-	net.LearningRule = bio.NoOpLearning{}
+	net := sparksnn.NewNetwork(uint32(total), 0, intThreshold, decayRate, 3)
+	net.LearningRule = sparksnn.NoOpLearning{}
 
 	inputStart := uint32(0)
 	inputEnd := uint32(numInput)

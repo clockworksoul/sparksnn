@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	biomimetic "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 )
 
 // motorActivity sums the activation of a set of neurons identified by
 // name prefix (e.g., "VA", "DA" for A-class backward motors; "VB",
 // "DB" for B-class forward motors).
-func motorActivity(net *biomimetic.Network, nameMap map[string]uint32, prefixes []string) int64 {
+func motorActivity(net *sparksnn.Network, nameMap map[string]uint32, prefixes []string) int64 {
 	var total int64
 	for name, idx := range nameMap {
 		for _, prefix := range prefixes {
@@ -31,7 +31,7 @@ type namedAct struct {
 	Activation int64
 }
 
-func neuronsMatchingPrefix(net *biomimetic.Network, nameMap map[string]uint32, prefixes []string) []namedAct {
+func neuronsMatchingPrefix(net *sparksnn.Network, nameMap map[string]uint32, prefixes []string) []namedAct {
 	var result []namedAct
 	for name, idx := range nameMap {
 		for _, prefix := range prefixes {

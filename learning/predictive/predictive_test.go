@@ -3,17 +3,17 @@ package predictive
 import (
 	"testing"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 	"github.com/clockworksoul/sparksnn/learning/rstdp"
 )
 
 func TestRuleSatisfiesInterface(t *testing.T) {
-	var _ bio.LearningRule = &Rule{}
-	var _ bio.LearningRule = NewRule(DefaultConfig())
+	var _ sparksnn.LearningRule = &Rule{}
+	var _ sparksnn.LearningRule = NewRule(DefaultConfig())
 }
 
 func TestNoRewardNeeded(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
@@ -30,7 +30,7 @@ func TestNoRewardNeeded(t *testing.T) {
 }
 
 func TestEligibilityAccumulates(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
@@ -50,7 +50,7 @@ func TestEligibilityDecays(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.EligibilityDecayRate = 32768 // 50% per tick
 
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(cfg)
 	net.Connect(0, 1, 500)
 
@@ -74,7 +74,7 @@ func TestCausalTimingChangesWeights(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.LearningRate = 3277 // ~5%
 
-	net := bio.NewNetwork(3, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(3, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(cfg)
 	net.Connect(0, 1, 300)
 	net.Connect(1, 2, 300)
@@ -98,7 +98,7 @@ func TestSequenceLearning(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.LearningRate = 3277
 
-	net := bio.NewNetwork(5, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(5, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(cfg)
 
 	for i := uint32(0); i < 4; i++ {
@@ -129,7 +129,7 @@ func TestSequenceLearning(t *testing.T) {
 }
 
 func TestSwappableWithSTDP(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.Connect(0, 1, 500)
 
 	// Start with R-STDP
@@ -159,7 +159,7 @@ func TestSwappableWithSTDP(t *testing.T) {
 }
 
 func TestRewardIsNoOp(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
@@ -181,7 +181,7 @@ func TestWeightsClamped(t *testing.T) {
 	cfg.LearningRate = 6554
 	cfg.MaxWeightMagnitude = 1000
 
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(cfg)
 	net.Connect(0, 1, 900)
 
@@ -201,7 +201,7 @@ func TestInhibitoryConnections(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.LearningRate = 3277
 
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(cfg)
 	net.Connect(0, 1, -200)
 
@@ -231,14 +231,14 @@ func TestPredictFunction(t *testing.T) {
 		t.Errorf("predict(1000, -1000) = %d, want negative", pred)
 	}
 
-	pred = p.predict(bio.MaxActivation, bio.MaxWeight)
+	pred = p.predict(sparksnn.MaxActivation, sparksnn.MaxWeight)
 	if pred < 0 {
 		t.Errorf("predict(max, max) overflowed: %d", pred)
 	}
 }
 
 func TestStaticNetworkUnchanged(t *testing.T) {
-	net := bio.NewNetwork(3, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(3, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 	net.Connect(1, 2, 300)
@@ -271,8 +271,8 @@ func TestDefaultConfig(t *testing.T) {
 
 func abs64(v int64) int64 {
 	if v < 0 {
-		if v == bio.MinWeight {
-			return bio.MaxWeight
+		if v == sparksnn.MinWeight {
+			return sparksnn.MaxWeight
 		}
 		return -v
 	}

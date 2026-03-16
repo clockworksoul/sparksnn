@@ -3,7 +3,7 @@ package arbiter
 import (
 	"testing"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 )
 
 // TestStdpWindow verifies the linear STDP window approximation.
@@ -46,10 +46,10 @@ func TestCausalSTDP(t *testing.T) {
 	}
 	rule := NewRule(cfg, layers)
 
-	conn := &bio.Connection{Target: 2, Weight: 500}
+	conn := &sparksnn.Connection{Target: 2, Weight: 500}
 
 	// Source fired at tick 5 (encoded as 6), post fires at tick 7
-	incoming := []bio.IncomingConnection{
+	incoming := []sparksnn.IncomingConnection{
 		{SourceIndex: 6, Conn: conn},
 	}
 	rule.OnPostFire(incoming, 7)
@@ -73,7 +73,7 @@ func TestAntiCausalSTDP(t *testing.T) {
 	}
 	rule := NewRule(cfg, layers)
 
-	conn := &bio.Connection{Target: 2, Weight: 500}
+	conn := &sparksnn.Connection{Target: 2, Weight: 500}
 
 	// Post fired at tick 5, pre fires at tick 7
 	rule.OnSpikePropagation(conn, 7, 5)
@@ -87,7 +87,7 @@ func TestAntiCausalSTDP(t *testing.T) {
 // TestSignalErrorCorrect verifies that correct predictions don't
 // trigger depression.
 func TestSignalErrorCorrect(t *testing.T) {
-	net := bio.NewNetwork(6, 0, 100, 58982, 3)
+	net := sparksnn.NewNetwork(6, 0, 100, 58982, 3)
 	// Connect neuron 0 -> neuron 2 with weight 500
 	net.Connect(0, 2, 500)
 
@@ -118,7 +118,7 @@ func TestSignalErrorCorrect(t *testing.T) {
 func TestSignalErrorWrong(t *testing.T) {
 	// Build a small network:
 	// 2 input (0,1), 2 hidden (2,3), 3 output (4,5,6), 2 arbiter (7,8)
-	net := bio.NewNetwork(9, 0, 100, 58982, 3)
+	net := sparksnn.NewNetwork(9, 0, 100, 58982, 3)
 
 	// Hidden→Output connections
 	net.Connect(2, 4, 500) // hidden 0 → output 0
@@ -126,9 +126,9 @@ func TestSignalErrorWrong(t *testing.T) {
 	net.Connect(2, 6, 500) // hidden 0 → output 2
 
 	layers := []LayerSpec{
-		{Start: 0, End: 2},                              // input
+		{Start: 0, End: 2}, // input
 		{Start: 2, End: 4, ArbiterStart: 7, ArbiterEnd: 9}, // hidden
-		{Start: 4, End: 7},                              // output
+		{Start: 4, End: 7}, // output
 	}
 
 	cfg := DefaultConfig()
@@ -165,8 +165,8 @@ func TestWeightClamping(t *testing.T) {
 	layers := []LayerSpec{{Start: 0, End: 2}}
 	rule := NewRule(cfg, layers)
 
-	conn := &bio.Connection{Target: 1, Weight: 900}
-	incoming := []bio.IncomingConnection{
+	conn := &sparksnn.Connection{Target: 1, Weight: 900}
+	incoming := []sparksnn.IncomingConnection{
 		{SourceIndex: 2, Conn: conn}, // source fired at tick 1
 	}
 	rule.OnPostFire(incoming, 2) // dt=1

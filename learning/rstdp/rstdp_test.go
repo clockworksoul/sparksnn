@@ -3,16 +3,16 @@ package rstdp
 import (
 	"testing"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 )
 
 func TestRuleSatisfiesInterface(t *testing.T) {
-	var _ bio.LearningRule = &Rule{}
-	var _ bio.LearningRule = NewRule(DefaultConfig())
+	var _ sparksnn.LearningRule = &Rule{}
+	var _ sparksnn.LearningRule = NewRule(DefaultConfig())
 }
 
 func TestCausalEligibility(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
@@ -26,7 +26,7 @@ func TestCausalEligibility(t *testing.T) {
 }
 
 func TestAntiCausalEligibility(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
@@ -44,7 +44,7 @@ func TestAntiCausalEligibility(t *testing.T) {
 }
 
 func TestRewardConsolidatesWeights(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
@@ -73,7 +73,7 @@ func TestRewardConsolidatesWeights(t *testing.T) {
 }
 
 func TestPunishmentWeakensWeight(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
@@ -93,7 +93,7 @@ func TestPunishmentWeakensWeight(t *testing.T) {
 func TestEligibilityDecays(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.EligibilityDecayRate = 32768 // 50% per tick
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(cfg)
 	net.Connect(0, 1, 500)
 
@@ -117,7 +117,7 @@ func TestEligibilityDecays(t *testing.T) {
 }
 
 func TestNoRewardNoWeightChange(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
@@ -134,7 +134,7 @@ func TestNoRewardNoWeightChange(t *testing.T) {
 }
 
 func TestWindowExpiry(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 64000, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 64000, 2)
 	cfg := DefaultConfig()
 	cfg.TauPlus = 3
 	cfg.TauMinus = 3

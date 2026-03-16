@@ -3,12 +3,12 @@ package hybrid
 import (
 	"testing"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 )
 
 // TestHybridImplementsLearningRule verifies the interface is satisfied.
 func TestHybridImplementsLearningRule(t *testing.T) {
-	var _ bio.LearningRule = (*Rule)(nil)
+	var _ sparksnn.LearningRule = (*Rule)(nil)
 }
 
 // TestHybridDelegation verifies that both sub-rules are called.
@@ -18,7 +18,7 @@ func TestHybridDelegation(t *testing.T) {
 	rule := NewRule(cfg)
 
 	// Build a tiny network
-	net := bio.NewNetwork(4, 0, 100, 45000, 3)
+	net := sparksnn.NewNetwork(4, 0, 100, 45000, 3)
 	net.LearningRule = rule
 	net.Connect(0, 2, 200)
 	net.Connect(1, 2, 200)

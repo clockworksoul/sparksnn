@@ -25,7 +25,7 @@ package perturbation
 import (
 	"math/rand/v2"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 )
 
 // Config holds tunable parameters for weight perturbation learning.
@@ -48,7 +48,7 @@ type Config struct {
 	KeepEqualProb float64
 
 	// MaxWeightMagnitude caps the absolute value of weights.
-	// 0 = no cap (use bio.MaxWeight).
+	// 0 = no cap (use sparksnn.MaxWeight).
 	MaxWeightMagnitude int32
 
 	// BatchSize is the number of OnReward calls to accumulate
@@ -116,7 +116,7 @@ func NewRule(config Config) *Rule {
 }
 
 // ensureConnList builds or refreshes the cached connection list.
-func (r *Rule) ensureConnList(net *bio.Network) {
+func (r *Rule) ensureConnList(net *sparksnn.Network) {
 	if len(r.connList) > 0 && r.connListSize == len(net.Neurons) {
 		return
 	}
@@ -130,11 +130,11 @@ func (r *Rule) ensureConnList(net *bio.Network) {
 }
 
 // OnSpikePropagation is a no-op for weight perturbation.
-func (r *Rule) OnSpikePropagation(conn *bio.Connection, preFiredAt, postLastFired uint32) {
+func (r *Rule) OnSpikePropagation(conn *sparksnn.Connection, preFiredAt, postLastFired uint32) {
 }
 
 // OnPostFire is a no-op for weight perturbation.
-func (r *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32) {
+func (r *Rule) OnPostFire(incoming []sparksnn.IncomingConnection, postFiredAt uint32) {
 }
 
 // OnReward accumulates reward signals and evaluates perturbations
@@ -144,7 +144,7 @@ func (r *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 // for incorrect. After BatchSize calls, the accumulated reward is
 // compared against the previous batch to decide whether to keep
 // or revert the current weight perturbation.
-func (r *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {
+func (r *Rule) OnReward(net *sparksnn.Network, reward int32, tick uint32) {
 	r.ensureConnList(net)
 	if len(r.connList) == 0 {
 		return
@@ -169,11 +169,11 @@ func (r *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {
 
 	maxMag := int64(r.Config.MaxWeightMagnitude)
 	if maxMag == 0 {
-		maxMag = bio.MaxWeight
+		maxMag = sparksnn.MaxWeight
 	}
 
 	clamp := func(w int64) int64 {
-		if maxMag > 0 && maxMag < bio.MaxWeight {
+		if maxMag > 0 && maxMag < sparksnn.MaxWeight {
 			if w > maxMag {
 				return maxMag
 			}
@@ -220,12 +220,12 @@ func (r *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {
 	r.hasPending = true
 
 	delta := int64(r.rng.Int32N(r.perturbSize*2+1) - r.perturbSize)
-	conn.Weight = clamp(bio.ClampAdd(conn.Weight, delta))
+	conn.Weight = clamp(sparksnn.ClampAdd(conn.Weight, delta))
 
 	r.lastReward = batchTotal
 	r.hasLastReward = true
 }
 
 // Maintain is a no-op for weight perturbation.
-func (r *Rule) Maintain(net *bio.Network, tick uint32) {
+func (r *Rule) Maintain(net *sparksnn.Network, tick uint32) {
 }

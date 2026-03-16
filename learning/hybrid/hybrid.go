@@ -22,7 +22,7 @@
 package hybrid
 
 import (
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 	"github.com/clockworksoul/sparksnn/learning/perturbation"
 	"github.com/clockworksoul/sparksnn/learning/rstdp"
 )
@@ -40,12 +40,12 @@ type Config struct {
 // DefaultConfig returns reasonable defaults for hybrid learning.
 func DefaultConfig() Config {
 	rc := rstdp.DefaultConfig()
-	rc.APlus = 50              // gentler than standalone R-STDP
-	rc.AMinus = 50             // to avoid fighting perturbation
+	rc.APlus = 50  // gentler than standalone R-STDP
+	rc.AMinus = 50 // to avoid fighting perturbation
 	rc.MaxWeightMagnitude = 5000
 
 	pc := perturbation.DefaultConfig()
-	pc.PerturbSize = 200       // smaller perturbations alongside STDP
+	pc.PerturbSize = 200 // smaller perturbations alongside STDP
 	pc.MaxPerturbSize = 2000
 	pc.MaxWeightMagnitude = 5000
 
@@ -57,7 +57,7 @@ func DefaultConfig() Config {
 
 // Rule implements the hybrid R-STDP + perturbation learning rule.
 type Rule struct {
-	rstdpRule  *rstdp.Rule
+	rstdpRule   *rstdp.Rule
 	perturbRule *perturbation.Rule
 }
 
@@ -72,13 +72,13 @@ func NewRule(config Config) *Rule {
 // OnSpikePropagation delegates to R-STDP for eligibility trace
 // updates based on pre→post spike timing.
 // Perturbation does not use spike timing — no-op on its side.
-func (r *Rule) OnSpikePropagation(conn *bio.Connection, preFiredAt, postLastFired uint32) {
+func (r *Rule) OnSpikePropagation(conn *sparksnn.Connection, preFiredAt, postLastFired uint32) {
 	r.rstdpRule.OnSpikePropagation(conn, preFiredAt, postLastFired)
 }
 
 // OnPostFire delegates to R-STDP for eligibility trace updates
 // based on post-synaptic firing and incoming spike timing.
-func (r *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32) {
+func (r *Rule) OnPostFire(incoming []sparksnn.IncomingConnection, postFiredAt uint32) {
 	r.rstdpRule.OnPostFire(incoming, postFiredAt)
 }
 
@@ -89,13 +89,13 @@ func (r *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 //
 // R-STDP runs first so its fine-grained adjustments are in place
 // before perturbation evaluates network performance.
-func (r *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {
+func (r *Rule) OnReward(net *sparksnn.Network, reward int32, tick uint32) {
 	r.rstdpRule.OnReward(net, reward, tick)
 	r.perturbRule.OnReward(net, reward, tick)
 }
 
 // Maintain delegates to R-STDP for eligibility trace decay.
 // Perturbation has no per-tick maintenance.
-func (r *Rule) Maintain(net *bio.Network, tick uint32) {
+func (r *Rule) Maintain(net *sparksnn.Network, tick uint32) {
 	r.rstdpRule.Maintain(net, tick)
 }

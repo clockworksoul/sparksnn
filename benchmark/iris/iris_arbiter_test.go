@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 	"github.com/clockworksoul/sparksnn/benchmark"
 	"github.com/clockworksoul/sparksnn/learning/arbiter"
 )
@@ -45,7 +45,7 @@ func TestIrisArbiter(t *testing.T) {
 
 	total := numInput + numHidden + numOutput + numArbiterHidden
 
-	net := bio.NewNetwork(uint32(total), 0, cfg.Threshold, cfg.DecayRate, cfg.RefractoryPeriod)
+	net := sparksnn.NewNetwork(uint32(total), 0, cfg.Threshold, cfg.DecayRate, cfg.RefractoryPeriod)
 
 	layout := Layout{
 		InputStart:  0,
@@ -85,10 +85,10 @@ func TestIrisArbiter(t *testing.T) {
 	arbCfg.AMinus = 0
 	arbCfg.TauPlus = 10
 	arbCfg.TauMinus = 10
-	arbCfg.Multiplicative = false    // multiplicative available but fixed works better here
-	arbCfg.StrengtheningRatio = 3.0  // strengthen correct 3x more than depress wrong
+	arbCfg.Multiplicative = false   // multiplicative available but fixed works better here
+	arbCfg.StrengtheningRatio = 3.0 // strengthen correct 3x more than depress wrong
 	arbCfg.DepressionStrength = 20
-	arbCfg.ArbiterWindow = 50        // wide window to catch all activity in a sample
+	arbCfg.ArbiterWindow = 50 // wide window to catch all activity in a sample
 	arbCfg.MaxWeightMagnitude = 3000
 	arbCfg.MinWeightMagnitude = 15
 
@@ -206,7 +206,7 @@ func TestIrisArbiter(t *testing.T) {
 
 	// Report but don't fail on modest accuracy — this is a first implementation
 	if bestAcc >= 0.60 {
-		t.Logf("✓ Achieved %.1f%% — solid performance for biological learning!", bestAcc*100)
+		t.Logf("✓ Achieved %.1f%% — solid performance for sparksnnlogical learning!", bestAcc*100)
 	} else if bestAcc >= 0.45 {
 		t.Logf("⚠ Achieved %.1f%% — learning is happening but needs tuning", bestAcc*100)
 	}

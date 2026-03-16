@@ -5,7 +5,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 	"github.com/clockworksoul/sparksnn/learning/surrogate"
 )
 
@@ -39,8 +39,8 @@ func TestIrisSurrogate(t *testing.T) {
 
 	// Network uses scaled int32 weights for inference
 	intThreshold := int64(threshold * intScale)
-	net := bio.NewNetwork(uint32(total), 0, intThreshold, decayRate, refractoryPeriod)
-	net.LearningRule = bio.NoOpLearning{}
+	net := sparksnn.NewNetwork(uint32(total), 0, intThreshold, decayRate, refractoryPeriod)
+	net.LearningRule = sparksnn.NoOpLearning{}
 
 	inputStart := uint32(0)
 	inputEnd := uint32(numInput)
@@ -218,7 +218,7 @@ func TestIrisSurrogate(t *testing.T) {
 		// Float64 path (trainer.Predict)
 		f64Pred := trainer.Predict(inputValues)
 
-		// Int32 path (bio.Network)
+		// Int32 path (sparksnn.Network)
 		net.ResetActivation()
 		spikeCounts := make([]int, numOutput)
 		intInputWeight := inputWeight * intScale

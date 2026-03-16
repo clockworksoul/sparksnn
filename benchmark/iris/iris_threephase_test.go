@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 	"github.com/clockworksoul/sparksnn/benchmark"
 	"github.com/clockworksoul/sparksnn/learning/arbiter"
 )
@@ -25,15 +25,15 @@ func TestIrisThreePhase(t *testing.T) {
 	cfg.HiddenSize = 20
 	cfg.TicksPerSample = 40
 	cfg.RestTicks = 15
-	cfg.InputWeight = 600 << 8       // 153,600
-	cfg.Threshold = 120 << 8         // 30,720
+	cfg.InputWeight = 600 << 8 // 153,600
+	cfg.Threshold = 120 << 8   // 30,720
 	cfg.DecayRate = 50000
 	cfg.RefractoryPeriod = 3
-	cfg.InitWeightMax = 400 << 8     // 102,400
+	cfg.InitWeightMax = 400 << 8       // 102,400
 	cfg.LateralInhibition = -2000 << 8 // -512,000
 	cfg.DeterministicInput = true
 	cfg.PopulationSize = 10
-	cfg.NoiseWeight = 100 << 8       // 25,600 — scale noise with everything else
+	cfg.NoiseWeight = 100 << 8 // 25,600 — scale noise with everything else
 
 	numInput := cfg.inputNeuronCount()
 	numHidden := cfg.HiddenSize
@@ -42,7 +42,7 @@ func TestIrisThreePhase(t *testing.T) {
 
 	total := numInput + numHidden + numOutput + numArbiterHidden
 
-	net := bio.NewNetwork(uint32(total), 0, cfg.Threshold, cfg.DecayRate, cfg.RefractoryPeriod)
+	net := sparksnn.NewNetwork(uint32(total), 0, cfg.Threshold, cfg.DecayRate, cfg.RefractoryPeriod)
 
 	layout := Layout{
 		InputStart:  0,
@@ -79,7 +79,7 @@ func TestIrisThreePhase(t *testing.T) {
 	arbCfg.TauMinus = 10
 	arbCfg.Multiplicative = true
 	arbCfg.CorrectionRate = 0.15
-	arbCfg.StrengtheningRatio = 1.0 // equal magnitude; frequency will differ
+	arbCfg.StrengtheningRatio = 1.0     // equal magnitude; frequency will differ
 	arbCfg.DepressionStrength = 20 << 8 // 5,120 — fallback for non-multiplicative
 	arbCfg.ArbiterWindow = 50
 	arbCfg.MaxWeightMagnitude = 3000 << 8 // 768,000
@@ -155,9 +155,9 @@ func TestIrisThreePhase(t *testing.T) {
 
 	// Learning rate schedule: exponential decay from initial to min.
 	// Big steps early (explore), small steps later (fine-tune).
-	// Analogous to biological critical periods.
+	// Analogous to sparksnnlogical critical periods.
 	initialRate := arbCfg.CorrectionRate // 0.15
-	minRate := 0.005                      // floor — never stop learning entirely
+	minRate := 0.005                     // floor — never stop learning entirely
 	// Decay factor per epoch: we want to reach ~minRate around epoch 100.
 	// decay^100 = minRate/initialRate → decay = (minRate/initialRate)^(1/100)
 	decayFactor := math.Pow(minRate/initialRate, 1.0/100.0)

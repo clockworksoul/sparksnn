@@ -5,7 +5,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 )
 
 func TestNewRule(t *testing.T) {
@@ -23,7 +23,7 @@ func TestOnRewardPerturbs(t *testing.T) {
 	cfg := DefaultConfig()
 	rule := NewRule(cfg)
 
-	net := bio.NewNetwork(3, 0, 100, 45000, 3)
+	net := sparksnn.NewNetwork(3, 0, 100, 45000, 3)
 	net.Connect(0, 1, 500)
 	net.Connect(1, 2, 500)
 
@@ -43,7 +43,7 @@ func TestRevertOnWorse(t *testing.T) {
 	cfg.PerturbSize = 100
 	rule := NewRule(cfg)
 
-	net := bio.NewNetwork(2, 0, 100, 45000, 3)
+	net := sparksnn.NewNetwork(2, 0, 100, 45000, 3)
 	net.Connect(0, 1, 500)
 
 	// First call: sets up perturbation
@@ -70,7 +70,7 @@ func TestAdaptivePerturbSize(t *testing.T) {
 	cfg.AdaptAfter = 5
 	rule := NewRule(cfg)
 
-	net := bio.NewNetwork(2, 0, 100, 45000, 3)
+	net := sparksnn.NewNetwork(2, 0, 100, 45000, 3)
 	net.Connect(0, 1, 500)
 
 	// Send many equal-reward signals to trigger adaptation
@@ -87,10 +87,10 @@ func TestNoOpMethods(t *testing.T) {
 	rule := NewRule(DefaultConfig())
 
 	// These should not panic
-	rule.OnSpikePropagation(&bio.Connection{}, 1, 2)
+	rule.OnSpikePropagation(&sparksnn.Connection{}, 1, 2)
 	rule.OnPostFire(nil, 1)
 
-	net := bio.NewNetwork(2, 0, 100, 45000, 3)
+	net := sparksnn.NewNetwork(2, 0, 100, 45000, 3)
 	rule.Maintain(net, 1)
 }
 
@@ -100,7 +100,7 @@ func TestWeightCapping(t *testing.T) {
 	cfg.MaxWeightMagnitude = 500
 	rule := NewRule(cfg)
 
-	net := bio.NewNetwork(2, 0, 100, 45000, 3)
+	net := sparksnn.NewNetwork(2, 0, 100, 45000, 3)
 	net.Connect(0, 1, 400)
 
 	// Run many perturbations
@@ -149,7 +149,7 @@ func TestXORWithPerturbationRule(t *testing.T) {
 				cfg.BatchSize = 4 // evaluate after all 4 XOR patterns
 				rule := NewRule(cfg)
 
-				net := bio.NewNetwork(uint32(total), 0, threshold, 45000, 3)
+				net := sparksnn.NewNetwork(uint32(total), 0, threshold, 45000, 3)
 				net.LearningRule = rule
 
 				// Wire network

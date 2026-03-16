@@ -11,16 +11,16 @@ import (
 	"math/rand/v2"
 	"os"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 	"github.com/clockworksoul/sparksnn/benchmark"
 )
 
 // Task implements the XOR benchmark.
 type Task struct{}
 
-func (Task) Name() string       { return "XOR" }
-func (Task) NumInputs() int     { return 2 }
-func (Task) NumClasses() int    { return 2 }
+func (Task) Name() string    { return "XOR" }
+func (Task) NumInputs() int  { return 2 }
+func (Task) NumClasses() int { return 2 }
 
 // TrainingSamples returns the 4 XOR patterns, repeated to provide
 // enough training signal. Each pattern appears 250 times (1000 total).
@@ -145,7 +145,7 @@ type Layout struct {
 //	  ↔ N inhibitory neurons (lateral inhibition, fixed weights)
 //	  ↓ fully connected (learnable weights)
 //	2 output neurons (class 0, class 1)
-func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layout) {
+func BuildNetwork(cfg NetworkConfig, rule sparksnn.LearningRule) (*sparksnn.Network, Layout) {
 	numInput := 2
 	numHidden := cfg.HiddenSize
 	numInhib := 0
@@ -155,7 +155,7 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 	numOutput := 2
 	total := numInput + numHidden + numInhib + numOutput
 
-	net := bio.NewNetwork(uint32(total), 0, cfg.Threshold, cfg.DecayRate, cfg.RefractoryPeriod)
+	net := sparksnn.NewNetwork(uint32(total), 0, cfg.Threshold, cfg.DecayRate, cfg.RefractoryPeriod)
 	net.LearningRule = rule
 
 	layout := Layout{
@@ -221,7 +221,7 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 
 // PresentSample rate-encodes a sample and presents it to the network.
 // Returns the spike counts for each output neuron.
-func PresentSample(net *bio.Network, layout Layout, sample benchmark.Sample, cfg NetworkConfig) []int {
+func PresentSample(net *sparksnn.Network, layout Layout, sample benchmark.Sample, cfg NetworkConfig) []int {
 	numOutputs := int(layout.OutputEnd - layout.OutputStart)
 	spikeCounts := make([]int, numOutputs)
 
@@ -289,7 +289,7 @@ const EvalTrials = 5
 // summed across trials before classification.
 // Also returns the number of hidden neurons that never fired (dead)
 // and the mean spike rate per hidden neuron per sample.
-func Evaluate(net *bio.Network, layout Layout, task benchmark.Task, cfg NetworkConfig) (accuracy float64, dead int, spikeRate float64) {
+func Evaluate(net *sparksnn.Network, layout Layout, task benchmark.Task, cfg NetworkConfig) (accuracy float64, dead int, spikeRate float64) {
 	testSamples := task.TestSamples()
 	correct := 0
 	totalHiddenSpikes := 0
@@ -342,7 +342,7 @@ func Evaluate(net *bio.Network, layout Layout, task benchmark.Task, cfg NetworkC
 
 // CollectWeights gathers all learnable connection weights from
 // the network (input→hidden and hidden→output connections).
-func CollectWeights(net *bio.Network, layout Layout) []int64 {
+func CollectWeights(net *sparksnn.Network, layout Layout) []int64 {
 	var weights []int64
 
 	// Input → Hidden weights
@@ -368,7 +368,7 @@ func CollectWeights(net *bio.Network, layout Layout) []int64 {
 
 // Run executes the full XOR benchmark for a given learning rule.
 // It trains the network, periodically evaluates, and reports results.
-func Run(rule bio.LearningRule, ruleName string, cfg NetworkConfig) *benchmark.Tracker {
+func Run(rule sparksnn.LearningRule, ruleName string, cfg NetworkConfig) *benchmark.Tracker {
 	task := Task{}
 	net, layout := BuildNetwork(cfg, rule)
 	trainSamples := task.TrainingSamples()

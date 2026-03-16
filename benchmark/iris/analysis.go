@@ -6,7 +6,7 @@ import (
 	"math"
 	"sort"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 )
 
 // NetworkAnalysis captures the full structural and functional state
@@ -58,26 +58,26 @@ type WeightDist struct {
 
 // NeuronProfile captures per-neuron structural and functional info.
 type NeuronProfile struct {
-	Index         uint32
-	Layer         string // "input", "hidden", "output"
-	InDegree      int    // incoming connections
-	OutDegree     int    // outgoing connections
-	TotalSpikes   int    // total spikes across all class presentations
+	Index          uint32
+	Layer          string // "input", "hidden", "output"
+	InDegree       int    // incoming connections
+	OutDegree      int    // outgoing connections
+	TotalSpikes    int    // total spikes across all class presentations
 	SpikesPerClass [3]int
-	IsDead        bool
+	IsDead         bool
 	// For hidden neurons: which class they fire most for
-	PreferredClass int // -1 if dead or no preference
+	PreferredClass int     // -1 if dead or no preference
 	Selectivity    float64 // how much they prefer one class (0=uniform, 1=exclusive)
 }
 
 // ClassificationError records a single misclassified sample.
 type ClassificationError struct {
-	SampleIdx    int
-	TrueLabel    int
-	PredLabel    int
-	Features     []byte   // raw input features [0-255]
-	SpikeCounts  []int    // output neuron spike counts
-	Confidence   float64  // margin between top two outputs
+	SampleIdx   int
+	TrueLabel   int
+	PredLabel   int
+	Features    []byte  // raw input features [0-255]
+	SpikeCounts []int   // output neuron spike counts
+	Confidence  float64 // margin between top two outputs
 }
 
 // Path represents an input→hidden→output signal chain.
@@ -93,7 +93,7 @@ type Path struct {
 // Analyze runs a full structural and functional analysis of a
 // trained Iris network. Presents all training samples to observe
 // firing patterns.
-func Analyze(net *bio.Network, layout Layout, task *Task, cfg NetworkConfig) *NetworkAnalysis {
+func Analyze(net *sparksnn.Network, layout Layout, task *Task, cfg NetworkConfig) *NetworkAnalysis {
 	a := &NetworkAnalysis{}
 
 	// --- Structural analysis ---
@@ -436,7 +436,7 @@ func neuronLayer(idx uint32, layout Layout) string {
 	}
 }
 
-func collectWeightDist(net *bio.Network, layout Layout, which string) WeightDist {
+func collectWeightDist(net *sparksnn.Network, layout Layout, which string) WeightDist {
 	var weights []int64
 
 	for i := uint32(0); i < uint32(len(net.Neurons)); i++ {
@@ -495,7 +495,7 @@ func collectWeightDist(net *bio.Network, layout Layout, which string) WeightDist
 	return wd
 }
 
-func findStrongestPaths(net *bio.Network, layout Layout, topN int) []Path {
+func findStrongestPaths(net *sparksnn.Network, layout Layout, topN int) []Path {
 	var paths []Path
 
 	for i := layout.InputStart; i < layout.InputEnd; i++ {

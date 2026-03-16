@@ -12,7 +12,7 @@ import (
 	"github.com/clockworksoul/sparksnn/learning/rstdp"
 	"github.com/clockworksoul/sparksnn/learning/stdp"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 )
 
 func main() {
@@ -20,12 +20,12 @@ func main() {
 	cfg.HiddenSize = 2            // minimal — matches proven handwired/learned topology
 	cfg.UseInhibition = false     // no lateral inhibition — learning creates competition
 	cfg.DeterministicInput = true // clean signal, no rate coding noise
-	cfg.TicksPerSample = 50      // match minimal test
+	cfg.TicksPerSample = 50       // match minimal test
 	cfg.RestTicks = 20
 
 	type trial struct {
 		name    string
-		rule    bio.LearningRule
+		rule    sparksnn.LearningRule
 		reward  bool // whether to inject reward signals
 		tracker *benchmark.Tracker
 	}
@@ -44,9 +44,9 @@ func main() {
 	predCfg.MaxWeightMagnitude = 500
 
 	trials := []trial{
-		{name: "No Learning", rule: bio.NoOpLearning{}},
+		{name: "No Learning", rule: sparksnn.NoOpLearning{}},
 		{name: "R-STDP+Asym", rule: rstdp.NewRule(rstdpCfg), reward: true},
-		{name: "Asymmetric", rule: bio.NoOpLearning{}, reward: true},
+		{name: "Asymmetric", rule: sparksnn.NoOpLearning{}, reward: true},
 	}
 
 	for i := range trials {
@@ -78,7 +78,7 @@ func main() {
 	fmt.Println("========================================")
 }
 
-func runWithReward(rule bio.LearningRule, name string, cfg xor.NetworkConfig) *benchmark.Tracker {
+func runWithReward(rule sparksnn.LearningRule, name string, cfg xor.NetworkConfig) *benchmark.Tracker {
 	task := xor.Task{}
 	net, layout := xor.BuildNetwork(cfg, rule)
 	tracker := benchmark.NewTracker(10)
@@ -148,7 +148,7 @@ func runWithReward(rule bio.LearningRule, name string, cfg xor.NetworkConfig) *b
 // learning rule to all learnable connections (input→hidden, hidden→output).
 // When source fired but target didn't, weight moves OPPOSITE to reward.
 // This is the key mechanism for discovering inhibitory connections.
-func applyAsymmetricUpdate(net *bio.Network, layout xor.Layout, reward int32, window uint32) {
+func applyAsymmetricUpdate(net *sparksnn.Network, layout xor.Layout, reward int32, window uint32) {
 	now := net.Counter
 	maxW := int64(5000) // cap weight magnitude
 
@@ -178,9 +178,9 @@ func applyAsymmetricUpdate(net *bio.Network, layout xor.Layout, reward int32, wi
 			tgtActive := isRecentlyActive(conn.Target)
 
 			if srcActive && tgtActive {
-				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, int64(reward)/4))
+				conn.Weight = clampWeight(sparksnn.ClampAdd(conn.Weight, int64(reward)/4))
 			} else if srcActive && !tgtActive {
-				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, -int64(reward)/8))
+				conn.Weight = clampWeight(sparksnn.ClampAdd(conn.Weight, -int64(reward)/8))
 			}
 		}
 	}
@@ -196,9 +196,9 @@ func applyAsymmetricUpdate(net *bio.Network, layout xor.Layout, reward int32, wi
 			tgtActive := isRecentlyActive(conn.Target)
 
 			if srcActive && tgtActive {
-				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, int64(reward)/4))
+				conn.Weight = clampWeight(sparksnn.ClampAdd(conn.Weight, int64(reward)/4))
 			} else if srcActive && !tgtActive {
-				conn.Weight = clampWeight(bio.ClampAdd(conn.Weight, -int64(reward)/8))
+				conn.Weight = clampWeight(sparksnn.ClampAdd(conn.Weight, -int64(reward)/8))
 			}
 		}
 	}

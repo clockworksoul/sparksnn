@@ -3,7 +3,7 @@ package surrogate
 import (
 	"math"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 )
 
 // LayerSpec describes a contiguous range of neuron indices in a layer.
@@ -43,7 +43,7 @@ type Config struct {
 // with surrogate gradients to train the spiking network.
 type Trainer struct {
 	Config Config
-	Net    *bio.Network
+	Net    *sparksnn.Network
 
 	// weights maps (srcIdx, connIdx) to the float64 shadow weight.
 	// These are the "true" weights; int32 network weights are quantized
@@ -72,11 +72,11 @@ type trainBuffers struct {
 	initialized bool
 
 	// Forward pass
-	mem         []float64   // [numNeurons] membrane potentials
-	traceU      []float64   // [numNeurons * numSteps] flat: trace[i][t] = traceU[i*numSteps+t]
-	traceS      []float64   // [numNeurons * numSteps] flat: spike[i][t] = traceS[i*numSteps+t]
-	spikeCounts []float64   // [numOutputs]
-	current     []float64   // [numNeurons] reused each timestep
+	mem         []float64 // [numNeurons] membrane potentials
+	traceU      []float64 // [numNeurons * numSteps] flat: trace[i][t] = traceU[i*numSteps+t]
+	traceS      []float64 // [numNeurons * numSteps] flat: spike[i][t] = traceS[i*numSteps+t]
+	spikeCounts []float64 // [numOutputs]
+	current     []float64 // [numNeurons] reused each timestep
 
 	// Backward pass
 	dLdU []float64   // [numNeurons * numSteps] flat
@@ -103,7 +103,7 @@ type adamState struct {
 // It initializes float64 shadow weights from the network's int32 weights,
 // dividing by weightScale to convert from int32 to float64 domain.
 // Use weightScale=1.0 if the network already uses float-friendly weights.
-func NewTrainer(net *bio.Network, cfg Config, weightScale float64) *Trainer {
+func NewTrainer(net *sparksnn.Network, cfg Config, weightScale float64) *Trainer {
 	if weightScale == 0 {
 		weightScale = 1.0
 	}

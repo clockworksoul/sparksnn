@@ -18,9 +18,7 @@
 // Reference: research/arbiter-neurons.md
 package arbiter
 
-import (
-	bio "github.com/clockworksoul/sparksnn"
-)
+import "github.com/clockworksoul/sparksnn"
 
 // LayerSpec describes a single layer in the network and its
 // associated arbiter neurons.
@@ -119,11 +117,11 @@ func DefaultConfig() Config {
 		AMinus:             25,
 		TauPlus:            8,
 		TauMinus:           8,
-		DepressionStrength:  80,
-		ArbiterWindow:       15,
-		StrengtheningRatio:  2.0,
-		MaxWeightMagnitude:  0,
-		MinWeightMagnitude:  0,
+		DepressionStrength: 80,
+		ArbiterWindow:      15,
+		StrengtheningRatio: 2.0,
+		MaxWeightMagnitude: 0,
+		MinWeightMagnitude: 0,
 	}
 }
 
@@ -181,7 +179,7 @@ func NewRule(config Config, layers []LayerSpec) *Rule {
 // correctClass is the index of the correct output neuron within the
 // output layer (0-indexed relative to the output layer start).
 // spikeCounts are the spike counts for each output neuron.
-func (r *Rule) SignalError(net *bio.Network, correctClass int, spikeCounts []int) {
+func (r *Rule) SignalError(net *sparksnn.Network, correctClass int, spikeCounts []int) {
 	// Determine if the network was wrong
 	predicted := -1
 	bestCount := 0
@@ -219,7 +217,7 @@ func (r *Rule) SignalError(net *bio.Network, correctClass int, spikeCounts []int
 // correctClass is the index of the correct output neuron within the
 // output layer. spikeCounts are the spike counts for each output.
 // Returns true if strengthening was applied (correct prediction).
-func (r *Rule) StrengthenActive(net *bio.Network, correctClass int, spikeCounts []int) bool {
+func (r *Rule) StrengthenActive(net *sparksnn.Network, correctClass int, spikeCounts []int) bool {
 	// Only strengthen on correct predictions
 	predicted := -1
 	bestCount := 0
@@ -279,9 +277,9 @@ func (r *Rule) StrengthenActive(net *bio.Network, correctClass int, spikeCounts 
 				// Both source and target fired — causal connection
 				if mult {
 					delta := r.multDelta(conn.Weight, rate*ratio)
-					conn.Weight = bio.ClampAdd(conn.Weight, delta)
+					conn.Weight = sparksnn.ClampAdd(conn.Weight, delta)
 				} else {
-					conn.Weight = bio.ClampAdd(conn.Weight, strengthenDelta)
+					conn.Weight = sparksnn.ClampAdd(conn.Weight, strengthenDelta)
 				}
 				r.clampWeight(conn)
 			}
@@ -342,9 +340,9 @@ func (r *Rule) StrengthenActive(net *bio.Network, correctClass int, spikeCounts 
 						// Both source (input) and target (hidden) fired
 						if mult {
 							delta := r.multDelta(conn.Weight, upstreamRate)
-							conn.Weight = bio.ClampAdd(conn.Weight, delta)
+							conn.Weight = sparksnn.ClampAdd(conn.Weight, delta)
 						} else {
-							conn.Weight = bio.ClampAdd(conn.Weight, thirdStrength)
+							conn.Weight = sparksnn.ClampAdd(conn.Weight, thirdStrength)
 						}
 						r.clampWeight(conn)
 					}
@@ -363,7 +361,7 @@ func (r *Rule) StrengthenActive(net *bio.Network, correctClass int, spikeCounts 
 // Both signals are applied on every wrong prediction so that the
 // correct pathway gets reinforcement even when the network is wrong.
 // Returns true if corrections were applied (i.e., prediction was wrong).
-func (r *Rule) CorrectErrors(net *bio.Network, correctClass int, spikeCounts []int) bool {
+func (r *Rule) CorrectErrors(net *sparksnn.Network, correctClass int, spikeCounts []int) bool {
 	// If correct, nothing to correct
 	predicted := -1
 	bestCount := 0
@@ -392,7 +390,7 @@ func (r *Rule) CorrectErrors(net *bio.Network, correctClass int, spikeCounts []i
 // (causal Hebbian constraint). Note: the correct output may not
 // have fired on a wrong prediction — if so, we strengthen connections
 // from active hidden neurons anyway (they tried to activate it).
-func (r *Rule) strengthenCorrectOnError(net *bio.Network, correctClass int) {
+func (r *Rule) strengthenCorrectOnError(net *sparksnn.Network, correctClass int) {
 	tick := net.Counter
 	window := r.Config.ArbiterWindow
 	correctOutput := r.outputStart + uint32(correctClass)
@@ -448,9 +446,9 @@ func (r *Rule) strengthenCorrectOnError(net *bio.Network, correctClass int) {
 
 				if mult {
 					delta := r.multDelta(conn.Weight, rate*ratio)
-					conn.Weight = bio.ClampAdd(conn.Weight, delta)
+					conn.Weight = sparksnn.ClampAdd(conn.Weight, delta)
 				} else {
-					conn.Weight = bio.ClampAdd(conn.Weight, strengthenDelta)
+					conn.Weight = sparksnn.ClampAdd(conn.Weight, strengthenDelta)
 				}
 				r.clampWeight(conn)
 			}
@@ -474,7 +472,7 @@ func (r *Rule) isArbiter(idx uint32) bool {
 // Only modulates connections where both source and target fired
 // (causal Hebbian constraint). A connection from a silent neuron
 // didn't contribute to the wrong output, so it's left alone.
-func (r *Rule) applyErrorDepression(net *bio.Network, correctClass int, spikeCounts []int) {
+func (r *Rule) applyErrorDepression(net *sparksnn.Network, correctClass int, spikeCounts []int) {
 	tick := net.Counter
 	window := r.Config.ArbiterWindow
 	strength := int64(r.Config.DepressionStrength)
@@ -520,9 +518,9 @@ func (r *Rule) applyErrorDepression(net *bio.Network, correctClass int, spikeCou
 				// causally contributed to the wrong output
 				if mult {
 					delta := r.multDelta(conn.Weight, rate)
-					conn.Weight = bio.ClampAdd(conn.Weight, -delta)
+					conn.Weight = sparksnn.ClampAdd(conn.Weight, -delta)
 				} else {
-					conn.Weight = bio.ClampAdd(conn.Weight, -int64(strength))
+					conn.Weight = sparksnn.ClampAdd(conn.Weight, -int64(strength))
 				}
 				r.clampWeight(conn)
 				r.floorWeight(conn)
@@ -584,9 +582,9 @@ func (r *Rule) applyErrorDepression(net *bio.Network, correctClass int, spikeCou
 						// Both source (input) and target (hidden) fired
 						if mult {
 							delta := r.multDelta(conn.Weight, upstreamRate)
-							conn.Weight = bio.ClampAdd(conn.Weight, -delta)
+							conn.Weight = sparksnn.ClampAdd(conn.Weight, -delta)
 						} else {
-							conn.Weight = bio.ClampAdd(conn.Weight, -halfStrength)
+							conn.Weight = sparksnn.ClampAdd(conn.Weight, -halfStrength)
 						}
 						r.clampWeight(conn)
 						r.floorWeight(conn)
@@ -606,7 +604,7 @@ func (r *Rule) applyErrorDepression(net *bio.Network, correctClass int, spikeCou
 //
 // This is more selective than blanket depression — it targets the
 // specific pathways that led to the wrong answer.
-func (r *Rule) applyTargetedCorrection(net *bio.Network, correctClass int, spikeCounts []int) {
+func (r *Rule) applyTargetedCorrection(net *sparksnn.Network, correctClass int, spikeCounts []int) {
 	tick := net.Counter
 	window := r.Config.ArbiterWindow
 	strength := int64(r.Config.DepressionStrength)
@@ -655,17 +653,17 @@ func (r *Rule) applyTargetedCorrection(net *bio.Network, correctClass int, spike
 					// Strengthen connection to correct output
 					if mult {
 						delta := r.multDelta(conn.Weight, rate*ratio)
-						conn.Weight = bio.ClampAdd(conn.Weight, delta)
+						conn.Weight = sparksnn.ClampAdd(conn.Weight, delta)
 					} else {
-						conn.Weight = bio.ClampAdd(conn.Weight, strengthenDelta)
+						conn.Weight = sparksnn.ClampAdd(conn.Weight, strengthenDelta)
 					}
 				} else if spikeCounts[outputIdx] > 0 {
 					// Depress connection to wrong output that fired
 					if mult {
 						delta := r.multDelta(conn.Weight, rate)
-						conn.Weight = bio.ClampAdd(conn.Weight, -delta)
+						conn.Weight = sparksnn.ClampAdd(conn.Weight, -delta)
 					} else {
-						conn.Weight = bio.ClampAdd(conn.Weight, -int64(strength))
+						conn.Weight = sparksnn.ClampAdd(conn.Weight, -int64(strength))
 					}
 				}
 
@@ -734,9 +732,9 @@ func (r *Rule) applyTargetedCorrection(net *bio.Network, correctClass int, spike
 					if conn.Target == hidIdx {
 						if mult {
 							delta := r.multDelta(conn.Weight, upstreamRate)
-							conn.Weight = bio.ClampAdd(conn.Weight, -delta)
+							conn.Weight = sparksnn.ClampAdd(conn.Weight, -delta)
 						} else {
-							conn.Weight = bio.ClampAdd(conn.Weight, -halfStrength)
+							conn.Weight = sparksnn.ClampAdd(conn.Weight, -halfStrength)
 						}
 						r.clampWeight(conn)
 						r.floorWeight(conn)
@@ -767,7 +765,7 @@ func (r *Rule) multDelta(weight int64, rate float64) int64 {
 }
 
 // floorWeight enforces MinWeightMagnitude bounds.
-func (r *Rule) floorWeight(conn *bio.Connection) {
+func (r *Rule) floorWeight(conn *sparksnn.Connection) {
 	minMag := int64(r.Config.MinWeightMagnitude)
 	if minMag <= 0 {
 		return
@@ -798,7 +796,7 @@ func stdpWindow(dt uint32, amplitude int32, tau uint32) int32 {
 
 // OnSpikePropagation handles pre-before-post STDP timing.
 // Anti-causal: post fired recently before pre → weaken.
-func (r *Rule) OnSpikePropagation(conn *bio.Connection, preFiredAt, postLastFired uint32) {
+func (r *Rule) OnSpikePropagation(conn *sparksnn.Connection, preFiredAt, postLastFired uint32) {
 	if postLastFired == 0 || postLastFired >= preFiredAt {
 		return
 	}
@@ -806,14 +804,14 @@ func (r *Rule) OnSpikePropagation(conn *bio.Connection, preFiredAt, postLastFire
 	dt := preFiredAt - postLastFired
 	delta := int64(stdpWindow(dt, r.Config.AMinus, r.Config.TauMinus))
 	if delta != 0 {
-		conn.Weight = bio.ClampAdd(conn.Weight, -delta)
+		conn.Weight = sparksnn.ClampAdd(conn.Weight, -delta)
 		r.clampWeight(conn)
 	}
 }
 
 // OnPostFire handles post-after-pre STDP timing.
 // Causal: pre fired recently before post → strengthen.
-func (r *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32) {
+func (r *Rule) OnPostFire(incoming []sparksnn.IncomingConnection, postFiredAt uint32) {
 	for _, in := range incoming {
 		if in.Conn == nil {
 			continue
@@ -832,7 +830,7 @@ func (r *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 		dt := postFiredAt - preFiredAt
 		delta := int64(stdpWindow(dt, r.Config.APlus, r.Config.TauPlus))
 		if delta != 0 {
-			in.Conn.Weight = bio.ClampAdd(in.Conn.Weight, delta)
+			in.Conn.Weight = sparksnn.ClampAdd(in.Conn.Weight, delta)
 			r.clampWeight(in.Conn)
 		}
 	}
@@ -840,14 +838,14 @@ func (r *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 
 // OnReward is a no-op for the arbiter rule. Error signals are
 // delivered through SignalError, not the global reward channel.
-func (r *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {}
+func (r *Rule) OnReward(net *sparksnn.Network, reward int32, tick uint32) {}
 
 // Maintain is called once per tick. Currently a no-op — the arbiter
 // rule applies changes immediately rather than accumulating traces.
-func (r *Rule) Maintain(net *bio.Network, tick uint32) {}
+func (r *Rule) Maintain(net *sparksnn.Network, tick uint32) {}
 
 // clampWeight enforces MaxWeightMagnitude bounds.
-func (r *Rule) clampWeight(conn *bio.Connection) {
+func (r *Rule) clampWeight(conn *sparksnn.Connection) {
 	maxMag := int64(r.Config.MaxWeightMagnitude)
 	if maxMag <= 0 {
 		return

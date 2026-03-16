@@ -3,7 +3,7 @@ package celegans
 import (
 	"testing"
 
-	biomimetic "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 )
 
 const testDataPath = "../data/celegans_connectome.csv"
@@ -17,7 +17,7 @@ func loadRecords(t *testing.T) []Record {
 	return records
 }
 
-func buildNetwork(t *testing.T) (*biomimetic.Network, map[string]uint32, map[uint32]string) {
+func buildNetwork(t *testing.T) (*sparksnn.Network, map[string]uint32, map[uint32]string) {
 	t.Helper()
 	records := loadRecords(t)
 	net, nameMap := BuildNetwork(records, DefaultParams())

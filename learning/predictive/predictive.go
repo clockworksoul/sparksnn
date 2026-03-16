@@ -11,9 +11,7 @@
 // Nature Communications 14, 4985 (2023)
 package predictive
 
-import (
-	bio "github.com/clockworksoul/sparksnn"
-)
+import "github.com/clockworksoul/sparksnn"
 
 // Config holds tunable parameters for the predictive learning rule.
 type Config struct {
@@ -77,11 +75,11 @@ func NewRule(config Config) *Rule {
 func (p *Rule) predict(postActivation int64, weight int64) int64 {
 	product := postActivation * weight
 	shifted := product >> p.Config.PredictionScale
-	if shifted > bio.MaxWeight {
-		return bio.MaxWeight
+	if shifted > sparksnn.MaxWeight {
+		return sparksnn.MaxWeight
 	}
-	if shifted < bio.MinWeight {
-		return bio.MinWeight
+	if shifted < sparksnn.MinWeight {
+		return sparksnn.MinWeight
 	}
 	return shifted
 }
@@ -89,8 +87,8 @@ func (p *Rule) predict(postActivation int64, weight int64) int64 {
 // OnSpikePropagation is called when a pre-synaptic neuron fires
 // and delivers a signal through a connection. Accumulates into
 // the eligibility trace to record that this synapse was active.
-func (p *Rule) OnSpikePropagation(conn *bio.Connection, preFiredAt, postLastFired uint32) {
-	conn.Eligibility = bio.ClampAdd(conn.Eligibility, conn.Weight)
+func (p *Rule) OnSpikePropagation(conn *sparksnn.Connection, preFiredAt, postLastFired uint32) {
+	conn.Eligibility = sparksnn.ClampAdd(conn.Eligibility, conn.Weight)
 }
 
 // OnPostFire is called when a post-synaptic neuron fires.
@@ -100,7 +98,7 @@ func (p *Rule) OnSpikePropagation(conn *bio.Connection, preFiredAt, postLastFire
 // The update rule (adapted to integer math):
 //
 //	w_t = w_{t-1} + η * (ε * v_{t-1} + E * p_{t-1})
-func (p *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32) {
+func (p *Rule) OnPostFire(incoming []sparksnn.IncomingConnection, postFiredAt uint32) {
 	if len(incoming) == 0 {
 		return
 	}
@@ -109,7 +107,7 @@ func (p *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 	scale := p.Config.PredictionScale
 	maxMag := p.Config.MaxWeightMagnitude
 	if maxMag == 0 {
-		maxMag = bio.MaxWeight
+		maxMag = sparksnn.MaxWeight
 	}
 
 	// Phase 1: Compute per-synapse prediction errors and global error.
@@ -117,7 +115,7 @@ func (p *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 
 	type synapseError struct {
 		error int64
-		conn  *bio.Connection
+		conn  *sparksnn.Connection
 	}
 	errors := make([]synapseError, 0, len(incoming))
 
@@ -149,9 +147,9 @@ func (p *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 			}
 		}
 
-		se.conn.Weight = bio.ClampAdd(se.conn.Weight, delta)
+		se.conn.Weight = sparksnn.ClampAdd(se.conn.Weight, delta)
 
-		if maxMag > 0 && maxMag < bio.MaxWeight {
+		if maxMag > 0 && maxMag < sparksnn.MaxWeight {
 			if se.conn.Weight > maxMag {
 				se.conn.Weight = maxMag
 			}
@@ -164,10 +162,10 @@ func (p *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 
 // OnReward is a no-op for predictive learning. The rule is fully
 // self-supervised — no external reward signal needed.
-func (p *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {}
+func (p *Rule) OnReward(net *sparksnn.Network, reward int32, tick uint32) {}
 
 // Maintain decays eligibility traces across the network.
-func (p *Rule) Maintain(net *bio.Network, tick uint32) {
+func (p *Rule) Maintain(net *sparksnn.Network, tick uint32) {
 	rate := p.Config.EligibilityDecayRate
 	if rate == 0 {
 		return

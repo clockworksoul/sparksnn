@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 	"github.com/clockworksoul/sparksnn/learning/surrogate"
 )
 
@@ -39,8 +39,8 @@ func TestFashionMNISTBatched(t *testing.T) {
 	intScale := float64(1 << 20)
 
 	intThreshold := int64(threshold * intScale)
-	net := bio.NewNetwork(uint32(total), 0, intThreshold, decayRate, 3)
-	net.LearningRule = bio.NoOpLearning{}
+	net := sparksnn.NewNetwork(uint32(total), 0, intThreshold, decayRate, 3)
+	net.LearningRule = sparksnn.NoOpLearning{}
 
 	inputStart := uint32(0)
 	inputEnd := uint32(numInput)

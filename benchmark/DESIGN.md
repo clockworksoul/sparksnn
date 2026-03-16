@@ -1,13 +1,13 @@
 # MNIST Benchmark Design
 
-*The "prove it learns" test for the biomimetic architecture.*
+*The "prove it learns" test for the sparksnnmimetic architecture.*
 *Drafted 2026-02-16 by Matt & Dross*
 
 ---
 
 ## Goal
 
-Demonstrate that our biomimetic architecture can learn useful representations through local plasticity rules — no backpropagation, no gradient descent, no global error signal (for the predictive rule).
+Demonstrate that our sparksnnmimetic architecture can learn useful representations through local plasticity rules — no backpropagation, no gradient descent, no global error signal (for the predictive rule).
 
 **Target:** Classify MNIST handwritten digits (10 classes, 28×28 grayscale images).
 
@@ -158,11 +158,11 @@ benchmark/
 - Return []Image{pixels []byte, label byte}
 
 ### Step 2: Input Encoding
-- `RateEncode(image []byte, net *bio.Network, inputNeurons []uint32, numTicks int)`
+- `RateEncode(image []byte, net *sparksnn.Network, inputNeurons []uint32, numTicks int)`
 - For each tick: for each pixel, probabilistically stimulate the input neuron
 
 ### Step 3: Network Builder
-- `BuildMNISTNetwork(hiddenSize int, rule bio.LearningRule) *bio.Network`
+- `BuildMNISTNetwork(hiddenSize int, rule sparksnn.LearningRule) *sparksnn.Network`
 - Creates the full topology: 784 input + N excitatory + N inhibitory
 - Sets up connections with random initial weights (small, positive for input→excitatory)
 - Sets up fixed inhibitory connections

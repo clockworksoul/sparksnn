@@ -1,13 +1,12 @@
 package mnist
 
 import (
-	"fmt"
 	"math"
 	"math/rand/v2"
 	"runtime"
 	"testing"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 	"github.com/clockworksoul/sparksnn/learning/surrogate"
 )
 
@@ -91,8 +90,8 @@ func TestMNISTDecaySweep(t *testing.T) {
 		intScale := float64(1 << 20)
 
 		intThreshold := int64(threshold * intScale)
-		net := bio.NewNetwork(uint32(total), 0, intThreshold, dc.decayRate, 3)
-		net.LearningRule = bio.NoOpLearning{}
+		net := sparksnn.NewNetwork(uint32(total), 0, intThreshold, dc.decayRate, 3)
+		net.LearningRule = sparksnn.NoOpLearning{}
 
 		inputStart := uint32(0)
 		inputEnd := uint32(numInput)
@@ -254,5 +253,4 @@ func TestMNISTDecaySweep(t *testing.T) {
 		t.Logf("%.4f,%.4f,%.4f,%.4f,%.4f,%.4f",
 			r.beta, r.accAt5, r.accAt10, r.accAt15, r.accAt20, r.bestAcc)
 	}
-	_ = fmt.Sprintf("") // avoid unused import
 }

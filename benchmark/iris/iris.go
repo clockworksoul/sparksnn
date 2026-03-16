@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"strings"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 	"github.com/clockworksoul/sparksnn/benchmark"
 )
 
@@ -28,9 +28,9 @@ type Task struct {
 	test  []benchmark.Sample
 }
 
-func (t *Task) Name() string       { return "Iris" }
-func (t *Task) NumInputs() int     { return 4 }
-func (t *Task) NumClasses() int    { return 3 }
+func (t *Task) Name() string    { return "Iris" }
+func (t *Task) NumInputs() int  { return 4 }
+func (t *Task) NumClasses() int { return 3 }
 
 func (t *Task) TrainingSamples() []benchmark.Sample { return t.train }
 func (t *Task) TestSamples() []benchmark.Sample     { return t.test }
@@ -257,14 +257,13 @@ type Layout struct {
 //	N hidden neurons
 //	  ↓ fully connected (learnable weights)
 //	3 output neurons (setosa, versicolor, virginica)
-//
-func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layout) {
+func BuildNetwork(cfg NetworkConfig, rule sparksnn.LearningRule) (*sparksnn.Network, Layout) {
 	numInput := cfg.inputNeuronCount()
 	numHidden := cfg.HiddenSize
 	numOutput := 3
 	total := numInput + numHidden + numOutput
 
-	net := bio.NewNetwork(uint32(total), 0, cfg.Threshold, cfg.DecayRate, cfg.RefractoryPeriod)
+	net := sparksnn.NewNetwork(uint32(total), 0, cfg.Threshold, cfg.DecayRate, cfg.RefractoryPeriod)
 	net.LearningRule = rule
 
 	layout := Layout{
@@ -313,7 +312,7 @@ func BuildNetwork(cfg NetworkConfig, rule bio.LearningRule) (*bio.Network, Layou
 // of neurons with Gaussian tuning curves. The stimulation weight
 // for each neuron is proportional to how close the feature value
 // is to that neuron's preferred value (its center).
-func PresentSample(net *bio.Network, layout Layout, sample benchmark.Sample, cfg NetworkConfig) []int {
+func PresentSample(net *sparksnn.Network, layout Layout, sample benchmark.Sample, cfg NetworkConfig) []int {
 	numOutputs := int(layout.OutputEnd - layout.OutputStart)
 	spikeCounts := make([]int, numOutputs)
 
@@ -415,7 +414,7 @@ const EvalTrials = 3
 
 // Evaluate runs all test samples and returns accuracy, dead neuron
 // count, and mean spike rate.
-func Evaluate(net *bio.Network, layout Layout, task *Task, cfg NetworkConfig) (accuracy float64, dead int, spikeRate float64) {
+func Evaluate(net *sparksnn.Network, layout Layout, task *Task, cfg NetworkConfig) (accuracy float64, dead int, spikeRate float64) {
 	testSamples := task.TestSamples()
 	correct := 0
 	totalHiddenSpikes := 0
@@ -465,7 +464,7 @@ func Evaluate(net *bio.Network, layout Layout, task *Task, cfg NetworkConfig) (a
 
 // CollectWeights gathers all learnable weights (input→hidden and
 // hidden→output).
-func CollectWeights(net *bio.Network, layout Layout) []int64 {
+func CollectWeights(net *sparksnn.Network, layout Layout) []int64 {
 	var weights []int64
 
 	for i := layout.InputStart; i < layout.InputEnd; i++ {
@@ -488,7 +487,7 @@ func CollectWeights(net *bio.Network, layout Layout) []int64 {
 }
 
 // Run executes the full Iris benchmark with weight perturbation.
-func Run(rule bio.LearningRule, ruleName string, cfg NetworkConfig) *benchmark.Tracker {
+func Run(rule sparksnn.LearningRule, ruleName string, cfg NetworkConfig) *benchmark.Tracker {
 	task := NewTask(42)
 	net, layout := BuildNetwork(cfg, rule)
 	tracker := benchmark.NewTracker(20) // more patience for harder problem

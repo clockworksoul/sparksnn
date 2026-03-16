@@ -16,7 +16,7 @@ package stdp
 import (
 	"math"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 )
 
 // Config holds tunable parameters for the pure STDP learning rule.
@@ -86,9 +86,9 @@ func Window(dt uint32, amplitude int32, tau uint32) int32 {
 }
 
 // clampWeight enforces MaxWeightMagnitude on a connection.
-func (s *Rule) clampWeight(conn *bio.Connection) {
+func (s *Rule) clampWeight(conn *sparksnn.Connection) {
 	maxMag := int64(s.Config.MaxWeightMagnitude)
-	if maxMag > 0 && maxMag < bio.MaxWeight {
+	if maxMag > 0 && maxMag < sparksnn.MaxWeight {
 		if conn.Weight > maxMag {
 			conn.Weight = maxMag
 		}
@@ -102,7 +102,7 @@ func (s *Rule) clampWeight(conn *bio.Connection) {
 // post-synaptic neuron has fired recently (within the STDP window),
 // this is anti-causal: post fired before pre → weaken the weight
 // directly.
-func (s *Rule) OnSpikePropagation(conn *bio.Connection, preFiredAt, postLastFired uint32) {
+func (s *Rule) OnSpikePropagation(conn *sparksnn.Connection, preFiredAt, postLastFired uint32) {
 	if postLastFired == 0 || postLastFired >= preFiredAt {
 		return
 	}
@@ -110,7 +110,7 @@ func (s *Rule) OnSpikePropagation(conn *bio.Connection, preFiredAt, postLastFire
 	dt := preFiredAt - postLastFired
 	delta := Window(dt, s.Config.AMinus, s.Config.TauMinus)
 	if delta != 0 {
-		conn.Weight = bio.ClampAdd(conn.Weight, -int64(delta))
+		conn.Weight = sparksnn.ClampAdd(conn.Weight, -int64(delta))
 		s.clampWeight(conn)
 	}
 }
@@ -119,7 +119,7 @@ func (s *Rule) OnSpikePropagation(conn *bio.Connection, preFiredAt, postLastFire
 // connections. For each incoming connection whose source has fired
 // recently (within the STDP window), this is causal: pre fired
 // before post → strengthen the weight directly.
-func (s *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32) {
+func (s *Rule) OnPostFire(incoming []sparksnn.IncomingConnection, postFiredAt uint32) {
 	for _, in := range incoming {
 		if in.Conn == nil {
 			continue
@@ -138,7 +138,7 @@ func (s *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 		dt := postFiredAt - preFiredAt
 		delta := Window(dt, s.Config.APlus, s.Config.TauPlus)
 		if delta != 0 {
-			in.Conn.Weight = bio.ClampAdd(in.Conn.Weight, int64(delta))
+			in.Conn.Weight = sparksnn.ClampAdd(in.Conn.Weight, int64(delta))
 			s.clampWeight(in.Conn)
 		}
 	}
@@ -146,8 +146,8 @@ func (s *Rule) OnPostFire(incoming []bio.IncomingConnection, postFiredAt uint32)
 
 // OnReward is a no-op for pure STDP. Weight changes happen
 // directly from spike timing — no reward signal is needed.
-func (s *Rule) OnReward(net *bio.Network, reward int32, tick uint32) {}
+func (s *Rule) OnReward(net *sparksnn.Network, reward int32, tick uint32) {}
 
 // Maintain is a no-op for pure STDP. There are no eligibility
 // traces to decay — weight changes are applied immediately.
-func (s *Rule) Maintain(net *bio.Network, tick uint32) {}
+func (s *Rule) Maintain(net *sparksnn.Network, tick uint32) {}

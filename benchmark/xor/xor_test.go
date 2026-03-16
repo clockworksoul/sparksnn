@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 	"github.com/clockworksoul/sparksnn/benchmark"
 	"github.com/clockworksoul/sparksnn/learning/predictive"
 	"github.com/clockworksoul/sparksnn/learning/rstdp"
@@ -34,7 +34,7 @@ func TestTaskBasics(t *testing.T) {
 
 func TestBuildNetwork(t *testing.T) {
 	cfg := DefaultConfig()
-	net, layout := BuildNetwork(cfg, bio.NoOpLearning{})
+	net, layout := BuildNetwork(cfg, sparksnn.NoOpLearning{})
 
 	totalNeurons := 2 + cfg.HiddenSize + cfg.HiddenSize + 2
 	if len(net.Neurons) != totalNeurons {
@@ -71,7 +71,7 @@ func TestBuildNetwork(t *testing.T) {
 
 func TestPresentSample(t *testing.T) {
 	cfg := DefaultConfig()
-	net, layout := BuildNetwork(cfg, bio.NoOpLearning{})
+	net, layout := BuildNetwork(cfg, sparksnn.NoOpLearning{})
 
 	sample := benchmark.Sample{Inputs: []byte{255, 0}, Label: 1}
 	spikeCounts := PresentSample(net, layout, sample, cfg)
@@ -102,7 +102,7 @@ func TestClassify(t *testing.T) {
 
 func TestEvaluateNoLearning(t *testing.T) {
 	cfg := DefaultConfig()
-	net, layout := BuildNetwork(cfg, bio.NoOpLearning{})
+	net, layout := BuildNetwork(cfg, sparksnn.NoOpLearning{})
 
 	acc, dead, sr := Evaluate(net, layout, Task{}, cfg)
 	t.Logf("No-learning baseline: accuracy=%.1f%%, dead=%d, spikeRate=%.2f",
@@ -223,7 +223,7 @@ func TestRunPureSTDPWithPlasticity(t *testing.T) {
 	net, layout := BuildNetwork(cfg, rule)
 
 	// Add structural plasticity
-	pcfg := bio.DefaultPlasticityConfig()
+	pcfg := sparksnn.DefaultPlasticityConfig()
 	pcfg.PruneThreshold = 10
 	pcfg.GrowthRate = 3
 	pcfg.MinCoActivityWindow = 200
@@ -241,7 +241,7 @@ func TestRunPureSTDPWithPlasticity(t *testing.T) {
 		tIsOutput := tgt >= layout.OutputStart && tgt < layout.OutputEnd
 		return (sIsInput && tIsHidden) || (sIsHidden && tIsOutput)
 	}
-	net.StructuralPlasticity = bio.NewPlasticity(pcfg)
+	net.StructuralPlasticity = sparksnn.NewPlasticity(pcfg)
 
 	tracker := benchmark.NewTracker(10)
 
@@ -297,7 +297,7 @@ func TestRunPredictiveWithPlasticity(t *testing.T) {
 	task := Task{}
 	net, layout := BuildNetwork(cfg, rule)
 
-	pcfg := bio.DefaultPlasticityConfig()
+	pcfg := sparksnn.DefaultPlasticityConfig()
 	pcfg.PruneThreshold = 10
 	pcfg.GrowthRate = 3
 	pcfg.MinCoActivityWindow = 200
@@ -314,7 +314,7 @@ func TestRunPredictiveWithPlasticity(t *testing.T) {
 		tIsOutput := tgt >= layout.OutputStart && tgt < layout.OutputEnd
 		return (sIsInput && tIsHidden) || (sIsHidden && tIsOutput)
 	}
-	net.StructuralPlasticity = bio.NewPlasticity(pcfg)
+	net.StructuralPlasticity = sparksnn.NewPlasticity(pcfg)
 
 	tracker := benchmark.NewTracker(10)
 

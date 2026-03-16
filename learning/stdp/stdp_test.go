@@ -3,16 +3,16 @@ package stdp
 import (
 	"testing"
 
-	bio "github.com/clockworksoul/sparksnn"
+	"github.com/clockworksoul/sparksnn"
 )
 
 func TestRuleSatisfiesInterface(t *testing.T) {
-	var _ bio.LearningRule = &Rule{}
-	var _ bio.LearningRule = NewRule(DefaultConfig())
+	var _ sparksnn.LearningRule = &Rule{}
+	var _ sparksnn.LearningRule = NewRule(DefaultConfig())
 }
 
 func TestCausalTimingStrengthensWeight(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
@@ -30,7 +30,7 @@ func TestCausalTimingStrengthensWeight(t *testing.T) {
 }
 
 func TestAntiCausalTimingWeakensWeight(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
@@ -54,7 +54,7 @@ func TestAntiCausalTimingWeakensWeight(t *testing.T) {
 
 func TestNoRewardNeeded(t *testing.T) {
 	// Pure STDP changes weights without any reward signal
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
@@ -70,7 +70,7 @@ func TestNoRewardNeeded(t *testing.T) {
 }
 
 func TestRewardIsNoOp(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
@@ -89,7 +89,7 @@ func TestRewardIsNoOp(t *testing.T) {
 
 func TestMaintainIsNoOp(t *testing.T) {
 	// Pure STDP has no eligibility decay — verify Maintain does nothing
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 500)
 
@@ -109,7 +109,7 @@ func TestMaintainIsNoOp(t *testing.T) {
 }
 
 func TestWindowExpiry(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 64000, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 64000, 2)
 	cfg := DefaultConfig()
 	cfg.TauPlus = 3
 	cfg.TauMinus = 3
@@ -140,7 +140,7 @@ func TestMaxWeightMagnitude(t *testing.T) {
 	cfg.APlus = 500
 	cfg.MaxWeightMagnitude = 600
 
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(cfg)
 	net.Connect(0, 1, 550)
 
@@ -158,7 +158,7 @@ func TestMaxWeightMagnitude(t *testing.T) {
 }
 
 func TestRepeatedCausalPotentiation(t *testing.T) {
-	net := bio.NewNetwork(2, 0, 100, 58982, 2)
+	net := sparksnn.NewNetwork(2, 0, 100, 58982, 2)
 	net.LearningRule = NewRule(DefaultConfig())
 	net.Connect(0, 1, 200)
 
